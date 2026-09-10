@@ -179,7 +179,7 @@ function IconSelect({ value = "link", options = LINK_ICON_OPTIONS, onChange, the
       </button>
 
       {isOpen && (
-        <div className={`absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-lg border p-1 shadow-2xl ${theme.cardBg}`} role="listbox">
+        <div className={`absolute left-0 right-0 top-full z-[100] mt-1 max-h-60 overflow-y-auto rounded-lg border p-1 shadow-2xl ${theme.cardBg}`} role="listbox">
           {options.map((option) => (
             <button
               key={option.value}
@@ -324,6 +324,7 @@ export function App() {
   // Toast notification
   const [toast, setToast] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -416,7 +417,8 @@ export function App() {
   }, [authToken]);
 
   const fetchInitialData = async () => {
-    setLoading(true);
+    const shouldShowInitialLoading = config === null;
+    if (shouldShowInitialLoading) setLoading(true);
     try {
       const [configRes, postsRes, statsRes] = await Promise.all([
         fetch("./api/config").then((r) => r.json()),
@@ -433,7 +435,7 @@ export function App() {
     } catch (err) {
       console.error("Error loading data:", err);
     } finally {
-      setLoading(false);
+      if (shouldShowInitialLoading) setLoading(false);
     }
   };
 
@@ -513,6 +515,7 @@ export function App() {
   const handleSwitchTheme = (newTheme) => {
     setThemeStyle(newTheme);
     localStorage.setItem("site_theme", newTheme);
+    setThemeMenuOpen(false);
     showToast(`当前切换为【${THEME_PRESETS[newTheme]?.name || newTheme}】风格`);
   };
 
@@ -671,6 +674,7 @@ export function App() {
           {/* Theme Switcher Quick Toggle */}
           <div className="relative group shrink-0">
             <button
+              onClick={() => setThemeMenuOpen((open) => !open)}
               className={`flex items-center gap-1.5 rounded-lg border p-2 text-xs font-semibold transition-all sm:px-2.5 sm:py-1.5 ${themeStyle === "glass"
                   ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
                   : themeStyle === "minimal"
@@ -683,7 +687,10 @@ export function App() {
               <span className="hidden sm:inline">{activeTheme.name}</span>
             </button>
 
-            <div className={`absolute right-0 mt-1 w-48 rounded-xl border p-1.5 shadow-2xl z-50 backdrop-blur-xl opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all ${themeStyle === "minimal" ? "bg-white border-slate-200 text-slate-800" : "bg-slate-900/95 border-slate-800 text-slate-100"
+            <div className={`absolute right-0 w-48 rounded-xl border p-1.5 shadow-2xl z-50 backdrop-blur-xl transition-all ${themeMenuOpen
+                ? "opacity-100 pointer-events-auto"
+                : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+              } ${themeStyle === "minimal" ? "bg-white border-slate-200 text-slate-800" : "bg-slate-900/95 border-slate-800 text-slate-100"
               }`}>
               <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-700/50 mb-1">
                 风格主题模式
@@ -869,7 +876,7 @@ function HomeView({ profile, links, socials, posts, onSelectPost, onGoBlog, them
                 key={idx}
                 href={s.url}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${theme.borderSubtle} ${theme.cardHoverBg} ${theme.textSecondary} ${s.color || ''}`}
               >
                 <IconHelper name={s.icon} className="w-3.5 h-3.5" />
@@ -896,8 +903,8 @@ function HomeView({ profile, links, socials, posts, onSelectPost, onGoBlog, them
             <a
               key={link.id}
               href={link.url}
-              target={link.url.startsWith('#') ? '_self' : '_blank'}
-              rel="noreferrer"
+              target="_blank"
+              rel="noopener noreferrer"
               className={`group p-4 rounded-xl border transition-all flex items-start gap-4 shadow-md ${link.highlight
                   ? theme.highlightCard
                   : `${theme.cardBg} ${theme.cardHoverBg}`
@@ -1876,7 +1883,7 @@ function AdminView({
 
           <div className="space-y-4">
             {linksForm.map((item, idx) => (
-              <div key={item.id || idx} className={`p-4 rounded-xl border space-y-3 ${theme.cardBg}`}>
+              <div key={item.id || idx} className={`relative p-4 rounded-xl border space-y-3 focus-within:z-50 ${theme.cardBg}`}>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-indigo-500">链接项目 #{idx + 1}</span>
                   <button
@@ -2268,7 +2275,7 @@ function AdminView({
                     <span className="font-mono font-bold text-indigo-500">#{idx + 1}</span>
                     <span className={`font-medium ${theme.textPrimary}`}>{post.title}</span>
                   </div>
-                  <span className={`font-mono ${theme.textMuted}`}>{post.views} 次阅读</span>
+                  <span className={`font-mono whitespace-nowrap ${theme.textMuted}`}>{post.views} 次阅读</span>
                 </div>
               ))}
             </div>
