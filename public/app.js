@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import {
   User, Link2, BookOpen, Clock, Eye, MessageSquare, Settings,
@@ -131,12 +131,39 @@ const LINK_ICON_OPTIONS = [
   { value: "layers", label: "资源集合" }
 ];
 
-function IconSelect({ value = "link", onChange, theme }) {
+const SOCIAL_ICON_OPTIONS = [
+  { value: "link", label: "通用链接" },
+  { value: "github", label: "GitHub" },
+  { value: "twitter", label: "Twitter / X" },
+  { value: "mail", label: "邮箱" },
+  { value: "globe", label: "个人网站" },
+  { value: "message-square", label: "社区 / 问答" },
+  { value: "tv", label: "视频 / 直播" },
+  { value: "book-open", label: "博客 / 专栏" },
+  { value: "bookmark", label: "收藏 / 书签" },
+  { value: "user", label: "个人资料" }
+];
+
+function IconSelect({ value = "link", options = LINK_ICON_OPTIONS, onChange, theme }) {
   const [isOpen, setIsOpen] = useState(false);
-  const selected = LINK_ICON_OPTIONS.find((option) => option.value === value) || LINK_ICON_OPTIONS[0];
+  const containerRef = useRef(null);
+  const selected = options.find((option) => option.value === value) || options[0];
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (!containerRef.current?.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [isOpen]);
 
   return (
-    <div className="relative mt-1">
+    <div ref={containerRef} className="relative">
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
@@ -153,7 +180,7 @@ function IconSelect({ value = "link", onChange, theme }) {
 
       {isOpen && (
         <div className={`absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-lg border p-1 shadow-2xl ${theme.cardBg}`} role="listbox">
-          {LINK_ICON_OPTIONS.map((option) => (
+          {options.map((option) => (
             <button
               key={option.value}
               type="button"
@@ -578,8 +605,8 @@ export function App() {
 
       {/* Top Header Navigation */}
       <header className={`sticky top-0 z-40 transition-colors duration-300 ${activeTheme.headerBg}`}>
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => { navigate("/"); fetchPosts(); fetchTimeline(); }}>
+        <div className="max-w-5xl mx-auto flex h-14 items-center gap-2 px-3 sm:h-16 sm:px-6">
+          <div className="flex shrink-0 cursor-pointer items-center gap-3" onClick={() => { navigate("/"); fetchPosts(); fetchTimeline(); }}>
             <img src={profile.avatar} alt={profile.name} className="w-9 h-9 rounded-full object-cover ring-2 ring-indigo-500/50" />
             <div className="hidden sm:block">
               <h1 className={`font-bold text-sm leading-tight ${activeTheme.textPrimary}`}>{profile.name}</h1>
@@ -588,25 +615,29 @@ export function App() {
           </div>
 
           {/* Nav Tabs */}
-          <nav className="flex items-center gap-1 sm:gap-2 text-sm">
+          <nav className="flex min-w-0 flex-1 items-center justify-center gap-0.5 text-sm sm:gap-2">
             <button
               onClick={() => { navigate("/"); fetchPosts(); fetchTimeline(); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${activeTab === "home" && !selectedPostId ? activeTheme.navActive : activeTheme.navInactive
+              title="主页"
+              aria-label="主页"
+              className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 font-medium transition-all sm:px-3 ${activeTab === "home" && !selectedPostId ? activeTheme.navActive : activeTheme.navInactive
                 }`}
             >
-              <User className="w-4 h-4" />
-              <span>主页</span>
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">主页</span>
             </button>
 
             <button
               onClick={() => { navigate("/blog"); fetchPosts(); fetchTimeline(); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${activeTab === "blog" || selectedPostId ? activeTheme.navActive : activeTheme.navInactive
+              title="博客"
+              aria-label="博客"
+              className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 font-medium transition-all sm:px-3 ${activeTab === "blog" || selectedPostId ? activeTheme.navActive : activeTheme.navInactive
                 }`}
             >
-              <BookOpen className="w-4 h-4" />
-              <span>博客</span>
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">博客</span>
               {posts.length > 0 && (
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${activeTab === "blog" || selectedPostId ? "bg-white/20 text-white" : "bg-slate-200/50 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                <span className={`hidden text-[10px] px-1.5 py-0.2 rounded-full font-mono sm:inline ${activeTab === "blog" || selectedPostId ? "bg-white/20 text-white" : "bg-slate-200/50 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
                   }`}>
                   {posts.length}
                 </span>
@@ -615,28 +646,32 @@ export function App() {
 
             <button
               onClick={() => { navigate("/timeline"); fetchPosts(); fetchTimeline(); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${activeTab === "timeline" ? activeTheme.navActive : activeTheme.navInactive
+              title="时间轴"
+              aria-label="时间轴"
+              className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 font-medium transition-all sm:px-3 ${activeTab === "timeline" ? activeTheme.navActive : activeTheme.navInactive
                 }`}
             >
-              <Clock className="w-4 h-4" />
-              <span>时间轴</span>
+              <Clock className="h-4 w-4" />
+              <span className="hidden sm:inline">时间轴</span>
             </button>
 
             <button
               onClick={() => navigate("/admin")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${activeTab === "admin" ? activeTheme.navActive : activeTheme.navInactive
+              title="管理后台"
+              aria-label="管理后台"
+              className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 font-medium transition-all sm:px-3 ${activeTab === "admin" ? activeTheme.navActive : activeTheme.navInactive
                 }`}
             >
-              <Settings className="w-4 h-4" />
+              <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">管理后台</span>
               {isAdmin && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>}
             </button>
           </nav>
 
           {/* Theme Switcher Quick Toggle */}
-          <div className="relative group">
+          <div className="relative group shrink-0">
             <button
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${themeStyle === "glass"
+              className={`flex items-center gap-1.5 rounded-lg border p-2 text-xs font-semibold transition-all sm:px-2.5 sm:py-1.5 ${themeStyle === "glass"
                   ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
                   : themeStyle === "minimal"
                     ? "bg-slate-100 border-slate-300 text-slate-800 hover:bg-slate-200"
@@ -1757,7 +1792,7 @@ function AdminView({
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-xs transition-colors ${theme.accentBg}`}
                 >
                   <Plus className="w-4 h-4" />
-                  <span>新建 Markdown 文章</span>
+                  <span>新建文章</span>
                 </button>
               </div>
 
@@ -1771,7 +1806,7 @@ function AdminView({
                         <th className="w-[100px] px-4 py-3">状态</th>
                         <th className="w-[90px] px-4 py-3">阅读数</th>
                         <th className="w-[130px] px-4 py-3">发布时间</th>
-                        <th className="w-[160px] px-4 py-3 text-right">操作</th>
+                        <th className="w-[160px] px-4 py-3">操作</th>
                       </tr>
                     </thead>
                     <tbody className={`divide-y ${theme.borderSubtle}`}>
@@ -1781,19 +1816,19 @@ function AdminView({
                             {p.is_pinned === 1 && <span className="text-[10px] text-amber-500 mr-1.5">[置顶]</span>}
                             {p.title}
                           </td>
-                          <td className={`w-[120px] px-4 py-3 ${theme.textSecondary}`}>{p.category}</td>
-                          <td className="w-[100px] px-4 py-3">
+                          <td className={`w-[120px] whitespace-nowrap px-4 py-3 ${theme.textSecondary}`}>{p.category}</td>
+                          <td className="w-[100px] whitespace-nowrap px-4 py-3">
                             <span className={`px-2 py-0.5 rounded text-[10px] ${p.status === 'published' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-slate-800 text-slate-400'
                               }`}>
                               {p.status === 'published' ? '已发布' : '草稿'}
                             </span>
                           </td>
-                          <td className={`w-[90px] px-4 py-3 font-mono ${theme.textSecondary}`}>{p.views}</td>
-                          <td className={`w-[130px] px-4 py-3 ${theme.textMuted}`}>{formatDate(p.created_at)}</td>
-                          <td className="w-[160px] whitespace-nowrap px-4 py-3 text-right">
+                          <td className={`w-[90px] whitespace-nowrap px-4 py-3 font-mono ${theme.textSecondary}`}>{p.views}</td>
+                          <td className={`w-[130px] whitespace-nowrap px-4 py-3 ${theme.textMuted}`}>{formatDate(p.created_at)}</td>
+                          <td className="w-[160px] whitespace-nowrap px-4 py-3">
                             <button
                               onClick={() => handleEditPost(p)}
-                              className={`px-2.5 py-1 rounded ${theme.subCardBg}`}
+                              className={`px-2.5 py-1 mr-1 rounded ${theme.subCardBg}`}
                             >
                               编辑
                             </button>
@@ -2158,28 +2193,16 @@ function AdminView({
 
                     <div>
                       <label className={`text-[10px] ${theme.textMuted}`}>图标标识</label>
-                      <select
+                      <IconSelect
                         value={social.icon || "link"}
-                        onChange={(e) => {
+                        options={SOCIAL_ICON_OPTIONS}
+                        onChange={(icon) => {
                           const updated = [...socialsForm];
-                          updated[idx] = { ...updated[idx], icon: e.target.value };
+                          updated[idx] = { ...updated[idx], icon };
                           setSocialsForm(updated);
                         }}
-                        className={`w-full rounded-lg px-3 py-2 text-xs mt-1 ${theme.inputBg}`}
-                      >
-                        <option value="link">通用链接</option>
-                        <option value="github">GitHub</option>
-                        <option value="twitter">Twitter / X</option>
-                        <option value="mail">邮箱</option>
-                        <option value="globe">个人网站</option>
-                        <option value="tv">视频平台</option>
-                        <option value="bookmark">收藏 / 专栏</option>
-                        <option value="message-square">问答 / 社区</option>
-                        <option value="user">个人资料</option>
-                        <option value="coffee">咖啡 / 合作</option>
-                        <option value="code">开源项目</option>
-                        <option value="sparkles">AI / 工具</option>
-                      </select>
+                        theme={theme}
+                      />
                     </div>
 
                     <div>
