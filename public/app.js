@@ -145,6 +145,42 @@ function getRouteState(pathname = window.location.pathname) {
   return { activeTab: "home", selectedPostId: null };
 }
 
+function ConfirmDialog({ message, onConfirm, onCancel, theme }) {
+  if (!message) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
+      <div className={`w-full max-w-sm rounded-2xl border p-6 shadow-2xl ${theme.cardBg}`}>
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl bg-red-500/15 p-2 text-red-400">
+            <Trash2 className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <h2 className={`text-base font-bold ${theme.textPrimary}`}>确认操作</h2>
+            <p className={`mt-2 text-sm leading-relaxed ${theme.textSecondary}`}>{message}</p>
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className={`rounded-lg px-4 py-2 text-xs font-semibold ${theme.subCardBg}`}
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-500"
+          >
+            确认删除
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function App() {
   // Navigation & View State
   const [activeTab, setActiveTab] = useState(() => getRouteState().activeTab); // home, blog, timeline, admin
@@ -175,10 +211,25 @@ export function App() {
 
   // Toast notification
   const [toast, setToast] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const requestConfirm = (message, onConfirm) => {
+    setConfirmDialog({ message, onConfirm });
+  };
+
+  const closeConfirm = () => {
+    setConfirmDialog(null);
+  };
+
+  const confirmAction = async () => {
+    const action = confirmDialog?.onConfirm;
+    closeConfirm();
+    if (action) await action();
   };
 
   const navigate = (path, replace = false) => {
@@ -433,6 +484,13 @@ export function App() {
         </div>
       )}
 
+      <ConfirmDialog
+        message={confirmDialog?.message}
+        onConfirm={confirmAction}
+        onCancel={closeConfirm}
+        theme={activeTheme}
+      />
+
       {/* Top Header Navigation */}
       <header className={`sticky top-0 z-40 transition-colors duration-300 ${activeTheme.headerBg}`}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -547,6 +605,7 @@ export function App() {
             onPostUpdated={handlePostUpdated}
             isAdmin={isAdmin}
             showToast={showToast}
+            requestConfirm={requestConfirm}
             theme={activeTheme}
           />
         ) : activeTab === "home" ? (
@@ -591,6 +650,7 @@ export function App() {
             fetchPosts={fetchInitialData}
             stats={stats}
             showToast={showToast}
+            requestConfirm={requestConfirm}
             theme={activeTheme}
             themeStyle={themeStyle}
             onSwitchTheme={handleSwitchTheme}
@@ -708,7 +768,7 @@ function HomeView({ profile, links, socials, posts, onSelectPost, onGoBlog, them
             <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
             <h3 className={`text-xl font-bold ${theme.textPrimary}`}>聚合链接 Navigation</h3>
           </div>
-          <span className={`text-xs ${theme.textMuted}`}>点击直达第三方平台与专栏服务</span>
+          {/* <span className={`text-xs ${theme.textMuted}`}>点击直达第三方平台与专栏服务</span> */}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -950,7 +1010,7 @@ function BlogListView({
 // -------------------------------------------------------------
 // 3. POST DETAIL VIEW (Markdown Article + Comments)
 // -------------------------------------------------------------
-function PostDetailView({ postId, onBack, onPostUpdated, isAdmin, showToast, theme }) {
+function PostDetailView({ postId, onBack, onPostUpdated, isAdmin, showToast, requestConfirm, theme }) {
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1046,19 +1106,20 @@ function PostDetailView({ postId, onBack, onPostUpdated, isAdmin, showToast, the
   };
 
   const handleDeleteComment = async (commentId) => {
-    if (!confirm("确定删除这条评论吗？")) return;
-    const adminToken = localStorage.getItem("admin_token") || "";
-    try {
-      const res = await fetch(`./api/comments/${commentId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${adminToken}` }
-      }).then((r) => r.json());
+    requestConfirm("确定删除这条评论吗？删除后将无法恢复。", async () => {
+      const adminToken = localStorage.getItem("admin_token") || "";
+      try {
+        const res = await fetch(`./api/comments/${commentId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${adminToken}` }
+        }).then((r) => r.json());
 
-      if (res.ok) {
-        showToast("评论已删除");
-        setComments(comments.filter((c) => c.id !== commentId));
-      }
-    } catch (e) { }
+        if (res.ok) {
+          showToast("评论已删除");
+          setComments((currentComments) => currentComments.filter((c) => c.id !== commentId));
+        }
+      } catch (e) { }
+    });
   };
 
   if (loading || !post) {
@@ -1267,13 +1328,13 @@ function TimelineView({ timeline, onSelectPost, theme }) {
       <div className="text-center space-y-2">
         <h2 className={`text-2xl font-bold flex items-center justify-center gap-2 ${theme.textPrimary}`}>
           <Clock className="w-6 h-6 text-indigo-500" />
-          <span>归档时间轴 Timeline</span>
+          <span>时间轴 Timeline</span>
         </h2>
         <p className={`text-xs ${theme.textMuted}`}>按年月记录的创作历程与技术思考</p>
       </div>
 
       {timeline.length === 0 ? (
-        <div className={`text-center py-12 text-xs ${theme.textMuted}`}>暂无公开文章归档</div>
+        <div className={`text-center py-12 text-xs ${theme.textMuted}`}>暂无公开文章</div>
       ) : (
         <div className={`relative border-l-2 border-indigo-500/30 ml-4 sm:ml-8 pl-6 space-y-10`}>
           {timeline.map((group) => (
@@ -1336,6 +1397,7 @@ function AdminView({
   fetchPosts,
   stats,
   showToast,
+  requestConfirm,
   theme,
   themeStyle,
   onSwitchTheme
@@ -1459,18 +1521,19 @@ function AdminView({
 
   // Handle Delete Post
   const handleDeletePost = async (id) => {
-    if (!confirm("确定彻底删除该文章及其相关评论吗？")) return;
-    try {
-      const res = await fetch(`./api/posts/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${authToken}` }
-      }).then((r) => r.json());
+    requestConfirm("确定彻底删除该文章及其相关评论吗？删除后将无法恢复。", async () => {
+      try {
+        const res = await fetch(`./api/posts/${id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${authToken}` }
+        }).then((r) => r.json());
 
-      if (res.ok) {
-        showToast("文章已删除");
-        fetchPosts();
-      }
-    } catch (e) { }
+        if (res.ok) {
+          showToast("文章已删除");
+          fetchPosts();
+        }
+      } catch (e) { }
+    });
   };
 
   // Handle Change Password
@@ -1979,17 +2042,28 @@ function AdminView({
 
                     <div>
                       <label className={`text-[10px] ${theme.textMuted}`}>图标标识</label>
-                      <input
-                        type="text"
+                      <select
                         value={social.icon || "link"}
-                        placeholder="github / mail / globe"
                         onChange={(e) => {
                           const updated = [...socialsForm];
                           updated[idx] = { ...updated[idx], icon: e.target.value };
                           setSocialsForm(updated);
                         }}
                         className={`w-full rounded-lg px-3 py-2 text-xs mt-1 ${theme.inputBg}`}
-                      />
+                      >
+                        <option value="link">通用链接</option>
+                        <option value="github">GitHub</option>
+                        <option value="twitter">Twitter / X</option>
+                        <option value="mail">邮箱</option>
+                        <option value="globe">个人网站</option>
+                        <option value="tv">视频平台</option>
+                        <option value="bookmark">收藏 / 专栏</option>
+                        <option value="message-square">问答 / 社区</option>
+                        <option value="user">个人资料</option>
+                        <option value="coffee">咖啡 / 合作</option>
+                        <option value="code">开源项目</option>
+                        <option value="sparkles">AI / 工具</option>
+                      </select>
                     </div>
 
                     <div>
@@ -2061,7 +2135,7 @@ function AdminView({
             </div>
           </div>
 
-          <div className={`pt-4 border-t flex justify-end ${theme.border}`}>
+          {/* <div className={`pt-4 border-t flex justify-end ${theme.border}`}>
             <button
               type="button"
               onClick={handleResetSeed}
@@ -2069,7 +2143,7 @@ function AdminView({
             >
               一键重置示例演示数据
             </button>
-          </div>
+          </div> */}
         </div>
       )}
 
