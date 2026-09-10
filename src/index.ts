@@ -773,3 +773,29 @@ export class App extends DurableObject {
     return this.app.fetch(request);
   }
 }
+
+export default {
+  async fetch(request: Request, env: any) {
+    const url = new URL(request.url);
+
+    if (url.pathname.startsWith("/api/")) {
+      const namespace = env.APP;
+      if (namespace && typeof namespace.get === "function") {
+        const id = namespace.idFromName("default");
+        const stub = namespace.get(id);
+        return stub.fetch(request);
+      }
+
+      return new Response(JSON.stringify({ ok: false, error: "Durable Object binding missing" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    if (env.ASSETS && typeof env.ASSETS.fetch === "function") {
+      return env.ASSETS.fetch(request);
+    }
+
+    return new Response("Not Found", { status: 404 });
+  }
+};
