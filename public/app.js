@@ -131,6 +131,16 @@ function formatRelativeTime(ts) {
   return formatDate(ts);
 }
 
+const DEFAULT_COVER_IMAGES = [
+  "https://img.alicdn.com/imgextra/i1/O1CN01E2kAgAD3KnH3thCa_!!6000000005269-0-tps-1920-1200.jpg",
+  "https://img.alicdn.com/imgextra/i1/O1CN01dni3PPnFo9E3thAe_!!6000000007991-0-tps-1920-1080.jpg",
+  "https://img.alicdn.com/imgextra/i4/O1CN01vCOgwiec7jD24u8m_!!6000000003999-0-tps-1024-768.jpg"
+];
+
+function getRandomCoverImage() {
+  return DEFAULT_COVER_IMAGES[Math.floor(Math.random() * DEFAULT_COVER_IMAGES.length)];
+}
+
 function getRouteState(pathname = window.location.pathname) {
   const normalizedPath = pathname.replace(/\/+$/, "") || "/";
   const postMatch = normalizedPath.match(/^\/post\/(\d+)$/);
@@ -1519,6 +1529,19 @@ function AdminView({
     }
   };
 
+  const handleEditPost = async (post) => {
+    try {
+      const res = await fetch(`./api/posts/${post.id}`).then((r) => r.json());
+      if (res.ok && res.post) {
+        setEditingPost(res.post);
+      } else {
+        showToast(res.error || "读取文章内容失败", "error");
+      }
+    } catch (e) {
+      showToast("读取文章内容失败", "error");
+    }
+  };
+
   // Handle Delete Post
   const handleDeletePost = async (id) => {
     requestConfirm("确定彻底删除该文章及其相关评论吗？删除后将无法恢复。", async () => {
@@ -1642,7 +1665,14 @@ function AdminView({
               <div className="flex items-center justify-between">
                 <h3 className={`text-lg font-bold ${theme.textPrimary}`}>所有文章列表 ({posts.length})</h3>
                 <button
-                  onClick={() => setEditingPost({ title: "", content: "", category: "架构设计", tags: [], status: "published" })}
+                  onClick={() => setEditingPost({
+                    title: "",
+                    content: "",
+                    category: "技术学习",
+                    tags: [],
+                    status: "published",
+                    cover_image: getRandomCoverImage()
+                  })}
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-xs transition-colors ${theme.accentBg}`}
                 >
                   <Plus className="w-4 h-4" />
@@ -1681,7 +1711,7 @@ function AdminView({
                           <td className={`px-4 py-3 ${theme.textMuted}`}>{formatDate(p.created_at)}</td>
                           <td className="px-4 py-3 text-right space-x-2">
                             <button
-                              onClick={() => setEditingPost(p)}
+                              onClick={() => handleEditPost(p)}
                               className={`px-2.5 py-1 rounded ${theme.subCardBg}`}
                             >
                               编辑
