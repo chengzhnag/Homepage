@@ -324,7 +324,6 @@ export function App() {
   // Toast notification
   const [toast, setToast] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
-  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -515,7 +514,6 @@ export function App() {
   const handleSwitchTheme = (newTheme) => {
     setThemeStyle(newTheme);
     localStorage.setItem("site_theme", newTheme);
-    setThemeMenuOpen(false);
     showToast(`当前切换为【${THEME_PRESETS[newTheme]?.name || newTheme}】风格`);
   };
 
@@ -674,7 +672,6 @@ export function App() {
           {/* Theme Switcher Quick Toggle */}
           <div className="relative group shrink-0">
             <button
-              onClick={() => setThemeMenuOpen((open) => !open)}
               className={`flex items-center gap-1.5 rounded-lg border p-2 text-xs font-semibold transition-all sm:px-2.5 sm:py-1.5 ${themeStyle === "glass"
                   ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
                   : themeStyle === "minimal"
@@ -687,11 +684,7 @@ export function App() {
               <span className="hidden sm:inline">{activeTheme.name}</span>
             </button>
 
-            <div className={`absolute right-0 w-48 rounded-xl border p-1.5 shadow-2xl z-50 backdrop-blur-xl transition-all ${themeMenuOpen
-                ? "opacity-100 pointer-events-auto"
-                : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
-              } ${themeStyle === "minimal" ? "bg-white border-slate-200 text-slate-800" : "bg-slate-900/95 border-slate-800 text-slate-100"
-              }`}>
+            <div className={`absolute right-0 mt-1 w-48 rounded-xl border p-1.5 shadow-2xl z-50 backdrop-blur-xl opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all ${themeStyle === "minimal" ? "bg-white border-slate-200 text-slate-800" : "bg-slate-900/95 border-slate-800 text-slate-100"}`}>
               <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-700/50 mb-1">
                 风格主题模式
               </div>

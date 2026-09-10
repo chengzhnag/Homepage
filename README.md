@@ -95,6 +95,10 @@ http://localhost:8787
 
 ## 部署说明
 
+### 一键部署
+
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/chengzhnag/Homepage)
+
 ### 部署到 Cloudflare Workers
 
 ```bash
@@ -286,6 +290,10 @@ http://localhost:8787
 ---
 
 ## Deployment
+
+### One-click deployment
+
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/chengzhnag/Homepage)
 
 ### Deploy to Cloudflare Workers
 
