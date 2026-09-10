@@ -5,10 +5,9 @@ import {
   Plus, Trash2, Edit, Sparkles, Coffee, Code, FileText, ChevronRight,
   Search, Share2, Tag, Check, LogIn, LogOut, ArrowLeft, ArrowUp, BarChart2,
   ShieldCheck, Lock, ExternalLink, Mail, Github, Twitter, RefreshCw,
-  Send, Layers, ThumbsUp, Calendar, MapPin, Globe, Tv, Bookmark,
+  Send, Layers, ThumbsUp, Calendar, MapPin, Globe, Tv, Bookmark, Download,
   Sun, Moon, Palette, Sliders, CheckCircle2
 } from "lucide-react";
-
 // Theme Style Presets Definition
 export const THEME_PRESETS = {
   dark: {
@@ -101,11 +100,82 @@ const IconHelper = ({ name, className = "w-5 h-5" }) => {
     'message-square': MessageSquare, settings: Settings, code: Code,
     sparkles: Sparkles, coffee: Coffee, mail: Mail, github: Github,
     twitter: Twitter, tv: Tv, globe: Globe, bookmark: Bookmark,
-    sun: Sun, moon: Moon, palette: Palette
+    'book-open': BookOpen, calendar: Calendar, 'map-pin': MapPin,
+    'external-link': ExternalLink, 'share-2': Share2, download: Download,
+    layers: Layers, sun: Sun, moon: Moon, palette: Palette
   };
   const Component = icons[name?.toLowerCase()] || Link2;
   return <Component className={className} />;
 };
+
+const LINK_ICON_OPTIONS = [
+  { value: "link", label: "通用链接" },
+  { value: "github", label: "GitHub" },
+  { value: "twitter", label: "Twitter / X" },
+  { value: "mail", label: "邮箱" },
+  { value: "globe", label: "个人网站" },
+  { value: "file-text", label: "文章 / 博客" },
+  { value: "book-open", label: "书籍 / 专栏" },
+  { value: "code", label: "代码 / 开源项目" },
+  { value: "sparkles", label: "AI / 工具" },
+  { value: "coffee", label: "咖啡 / 合作" },
+  { value: "message-square", label: "评论 / 社区" },
+  { value: "tv", label: "视频 / 直播" },
+  { value: "bookmark", label: "收藏 / 书签" },
+  { value: "user", label: "个人资料" },
+  { value: "calendar", label: "日程 / 活动" },
+  { value: "map-pin", label: "地点 / 地址" },
+  { value: "external-link", label: "外部链接" },
+  { value: "share-2", label: "分享" },
+  { value: "download", label: "下载" },
+  { value: "layers", label: "资源集合" }
+];
+
+function IconSelect({ value = "link", onChange, theme }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selected = LINK_ICON_OPTIONS.find((option) => option.value === value) || LINK_ICON_OPTIONS[0];
+
+  return (
+    <div className="relative mt-1">
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        className={`flex w-full items-center justify-between rounded px-3 py-1.5 text-xs ${theme.inputBg}`}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <IconHelper name={selected.value} className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">{selected.label}</span>
+        </span>
+        <ChevronRight className={`h-3.5 w-3.5 shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`} />
+      </button>
+
+      {isOpen && (
+        <div className={`absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-lg border p-1 shadow-2xl ${theme.cardBg}`} role="listbox">
+          {LINK_ICON_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                onChange(option.value);
+                setIsOpen(false);
+              }}
+              className={`flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs ${
+                selected.value === option.value ? theme.accentBg : theme.navInactive
+              }`}
+              role="option"
+              aria-selected={selected.value === option.value}
+            >
+              <IconHelper name={option.value} className="h-3.5 w-3.5 shrink-0" />
+              <span>{option.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Reading time calculator
 function getReadingTime(text = "") {
@@ -781,7 +851,7 @@ function HomeView({ profile, links, socials, posts, onSelectPost, onGoBlog, them
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
-            <h3 className={`text-xl font-bold ${theme.textPrimary}`}>聚合链接 Navigation</h3>
+            <h3 className={`text-xl font-bold ${theme.textPrimary}`}>聚合链接</h3>
           </div>
           {/* <span className={`text-xs ${theme.textMuted}`}>点击直达第三方平台与专栏服务</span> */}
         </div>
@@ -1418,6 +1488,7 @@ function AdminView({
   onSwitchTheme
 }) {
   const [editingPost, setEditingPost] = useState(null); // Null or Post object to edit/create
+  const [deletingPostId, setDeletingPostId] = useState(null);
 
   // Profile config form
   const [profileForm, setProfileForm] = useState(config?.profile || {});
@@ -1550,6 +1621,7 @@ function AdminView({
   // Handle Delete Post
   const handleDeletePost = async (id) => {
     requestConfirm("确定彻底删除该文章及其相关评论吗？删除后将无法恢复。", async () => {
+      setDeletingPostId(id);
       try {
         const res = await fetch(`./api/posts/${id}`, {
           method: "DELETE",
@@ -1560,7 +1632,11 @@ function AdminView({
           showToast("文章已删除");
           fetchPosts();
         }
-      } catch (e) { }
+      } catch (e) {
+        showToast("删除文章失败", "error");
+      } finally {
+        setDeletingPostId(null);
+      }
     });
   };
 
@@ -1687,34 +1763,34 @@ function AdminView({
 
               <div className={`rounded-xl overflow-hidden border ${theme.cardBg} ${theme.border}`}>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
+                  <table className="min-w-[760px] w-full text-left text-xs">
                     <thead className={`border-b uppercase font-semibold ${theme.border} ${theme.subCardBg} ${theme.textMuted}`}>
                       <tr>
-                        <th className="px-4 py-3">标题</th>
-                        <th className="px-4 py-3">分类</th>
-                        <th className="px-4 py-3">状态</th>
-                        <th className="px-4 py-3">阅读数</th>
-                        <th className="px-4 py-3">发布时间</th>
-                        <th className="px-4 py-3 text-right">操作</th>
+                        <th className="w-[280px] px-4 py-3">标题</th>
+                        <th className="w-[120px] px-4 py-3">分类</th>
+                        <th className="w-[100px] px-4 py-3">状态</th>
+                        <th className="w-[90px] px-4 py-3">阅读数</th>
+                        <th className="w-[130px] px-4 py-3">发布时间</th>
+                        <th className="w-[160px] px-4 py-3 text-right">操作</th>
                       </tr>
                     </thead>
                     <tbody className={`divide-y ${theme.borderSubtle}`}>
                       {posts.map((p) => (
                         <tr key={p.id} className={`${theme.cardHoverBg} transition-colors`}>
-                          <td className={`px-4 py-3 font-medium max-w-xs truncate ${theme.textPrimary}`}>
+                          <td className={`w-[280px] max-w-[280px] truncate px-4 py-3 font-medium ${theme.textPrimary}`}>
                             {p.is_pinned === 1 && <span className="text-[10px] text-amber-500 mr-1.5">[置顶]</span>}
                             {p.title}
                           </td>
-                          <td className={`px-4 py-3 ${theme.textSecondary}`}>{p.category}</td>
-                          <td className="px-4 py-3">
+                          <td className={`w-[120px] px-4 py-3 ${theme.textSecondary}`}>{p.category}</td>
+                          <td className="w-[100px] px-4 py-3">
                             <span className={`px-2 py-0.5 rounded text-[10px] ${p.status === 'published' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-slate-800 text-slate-400'
                               }`}>
                               {p.status === 'published' ? '已发布' : '草稿'}
                             </span>
                           </td>
-                          <td className={`px-4 py-3 font-mono ${theme.textSecondary}`}>{p.views}</td>
-                          <td className={`px-4 py-3 ${theme.textMuted}`}>{formatDate(p.created_at)}</td>
-                          <td className="px-4 py-3 text-right space-x-2">
+                          <td className={`w-[90px] px-4 py-3 font-mono ${theme.textSecondary}`}>{p.views}</td>
+                          <td className={`w-[130px] px-4 py-3 ${theme.textMuted}`}>{formatDate(p.created_at)}</td>
+                          <td className="w-[160px] whitespace-nowrap px-4 py-3 text-right">
                             <button
                               onClick={() => handleEditPost(p)}
                               className={`px-2.5 py-1 rounded ${theme.subCardBg}`}
@@ -1723,9 +1799,15 @@ function AdminView({
                             </button>
                             <button
                               onClick={() => handleDeletePost(p.id)}
-                              className="px-2.5 py-1 rounded bg-red-950/60 hover:bg-red-900 text-red-300"
+                              disabled={deletingPostId === p.id}
+                              className="px-2.5 py-1 rounded bg-red-950/60 hover:bg-red-900 text-red-300 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              删除
+                              {deletingPostId === p.id ? (
+                                <span className="inline-flex items-center gap-1">
+                                  <RefreshCw className="w-3 h-3 animate-spin" />
+                                  删除中
+                                </span>
+                              ) : "删除"}
                             </button>
                           </td>
                         </tr>
@@ -1817,16 +1899,15 @@ function AdminView({
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className={`text-[10px] ${theme.textMuted}`}>图标标识 (code/coffee/mail/github/sparkles)</label>
-                      <input
-                        type="text"
-                        value={item.icon || 'link'}
-                        onChange={(e) => {
+                      <label className={`text-[10px] ${theme.textMuted}`}>图标标识</label>
+                      <IconSelect
+                        value={item.icon || "link"}
+                        onChange={(icon) => {
                           const updated = [...linksForm];
-                          updated[idx].icon = e.target.value;
+                          updated[idx].icon = icon;
                           setLinksForm(updated);
                         }}
-                        className={`w-full rounded px-3 py-1.5 text-xs ${theme.inputBg}`}
+                        theme={theme}
                       />
                     </div>
                     <div>
@@ -2234,25 +2315,32 @@ function PostEditor({ editingPost, onCancel, onSave, theme }) {
   const [isPinned, setIsPinned] = useState(editingPost.is_pinned === 1);
   const [content, setContent] = useState(editingPost.content || "");
   const [previewMode, setPreviewMode] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
     const tagsArray = tagsStr
       .split(/[,，]/)
       .map((t) => t.trim())
       .filter(Boolean);
 
-    onSave({
-      id: editingPost.id,
-      title,
-      summary,
-      category,
-      cover_image: coverImage,
-      tags: tagsArray,
-      status,
-      is_pinned: isPinned ? 1 : 0,
-      content
-    });
+    setSaving(true);
+    try {
+      await onSave({
+        id: editingPost.id,
+        title,
+        summary,
+        category,
+        cover_image: coverImage,
+        tags: tagsArray,
+        status,
+        is_pinned: isPinned ? 1 : 0,
+        content
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const renderedPreview = renderMarkdown(content || "");
@@ -2261,21 +2349,26 @@ function PostEditor({ editingPost, onCancel, onSave, theme }) {
     <form onSubmit={handleFormSubmit} className={`space-y-6 p-6 rounded-2xl border shadow-2xl ${theme.cardBg}`}>
       <div className={`flex items-center justify-between border-b pb-4 ${theme.border}`}>
         <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
-          {editingPost.id ? "编辑 Markdown 文章" : "发布新 Markdown 文章"}
+          {editingPost.id ? "编辑文章" : "发布新文章"}
         </h3>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onCancel}
+            disabled={saving}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium ${theme.subCardBg}`}
           >
             取消
           </button>
           <button
             type="submit"
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold shadow-lg ${theme.accentBg}`}
+            disabled={saving}
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold shadow-lg disabled:cursor-not-allowed disabled:opacity-70 ${theme.accentBg}`}
           >
-            {editingPost.id ? "更新文章" : "立即发布"}
+            <span className="inline-flex items-center gap-1.5">
+              {saving && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+              {saving ? "保存中..." : editingPost.id ? "更新文章" : "立即发布"}
+            </span>
           </button>
         </div>
       </div>
