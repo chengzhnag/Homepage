@@ -131,6 +131,11 @@ function formatRelativeTime(ts) {
   return formatDate(ts);
 }
 
+function renderMarkdown(content = "") {
+  if (!window.marked) return content;
+  return window.marked.parse(content, { gfm: true, breaks: false });
+}
+
 const DEFAULT_COVER_IMAGES = [
   "https://img.alicdn.com/imgextra/i1/O1CN01E2kAgAD3KnH3thCa_!!6000000005269-0-tps-1920-1200.jpg",
   "https://img.alicdn.com/imgextra/i1/O1CN01dni3PPnFo9E3thAe_!!6000000007991-0-tps-1920-1080.jpg",
@@ -1142,7 +1147,7 @@ function PostDetailView({ postId, onBack, onPostUpdated, isAdmin, showToast, req
   }
 
   // Marked parser HTML
-  const renderedContent = window.marked ? window.marked.parse(post.content || "") : post.content;
+  const renderedContent = renderMarkdown(post.content || "");
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -2250,7 +2255,7 @@ function PostEditor({ editingPost, onCancel, onSave, theme }) {
     });
   };
 
-  const renderedPreview = window.marked ? window.marked.parse(content || "") : content;
+  const renderedPreview = renderMarkdown(content || "");
 
   return (
     <form onSubmit={handleFormSubmit} className={`space-y-6 p-6 rounded-2xl border shadow-2xl ${theme.cardBg}`}>

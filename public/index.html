@@ -90,6 +90,49 @@
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 0.88em;
     }
+    .markdown-body table {
+      display: block;
+      width: 100%;
+      overflow-x: auto;
+      border-collapse: collapse;
+      margin: 1.25rem 0;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    .markdown-body th,
+    .markdown-body td {
+      min-width: 8rem;
+      padding: 0.7rem 0.9rem;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      text-align: left;
+      vertical-align: top;
+    }
+    .markdown-dark th,
+    .markdown-glass th {
+      background: rgba(51, 65, 85, 0.65);
+      color: #f8fafc;
+      font-weight: 700;
+    }
+    .markdown-dark td,
+    .markdown-glass td {
+      color: #cbd5e1;
+    }
+    .markdown-dark tr:nth-child(even) td,
+    .markdown-glass tr:nth-child(even) td {
+      background: rgba(51, 65, 85, 0.2);
+    }
+    .markdown-minimal th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+    }
+    .markdown-minimal td {
+      color: #334155;
+      border-color: #cbd5e1;
+    }
+    .markdown-minimal tr:nth-child(even) td {
+      background: #f8fafc;
+    }
     
     /* Default & Dark Markdown */
     .markdown-body p {
