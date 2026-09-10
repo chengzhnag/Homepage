@@ -131,10 +131,24 @@ function formatRelativeTime(ts) {
   return formatDate(ts);
 }
 
+function getRouteState(pathname = window.location.pathname) {
+  const normalizedPath = pathname.replace(/\/+$/, "") || "/";
+  const postMatch = normalizedPath.match(/^\/post\/(\d+)$/);
+
+  if (postMatch) {
+    return { activeTab: "blog", selectedPostId: Number(postMatch[1]) };
+  }
+
+  if (normalizedPath === "/blog") return { activeTab: "blog", selectedPostId: null };
+  if (normalizedPath === "/timeline") return { activeTab: "timeline", selectedPostId: null };
+  if (normalizedPath === "/admin") return { activeTab: "admin", selectedPostId: null };
+  return { activeTab: "home", selectedPostId: null };
+}
+
 export function App() {
   // Navigation & View State
-  const [activeTab, setActiveTab] = useState("home"); // home, blog, timeline, admin
-  const [selectedPostId, setSelectedPostId] = useState(null); // When viewing single post
+  const [activeTab, setActiveTab] = useState(() => getRouteState().activeTab); // home, blog, timeline, admin
+  const [selectedPostId, setSelectedPostId] = useState(() => getRouteState().selectedPostId); // When viewing single post
 
   // Theme State
   const [themeStyle, setThemeStyle] = useState(() => localStorage.getItem("site_theme") || "dark");
@@ -166,6 +180,31 @@ export function App() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
+
+  const navigate = (path, replace = false) => {
+    const route = getRouteState(path);
+    const currentPath = window.location.pathname.replace(/\/+$/, "") || "/";
+    const nextPath = path.replace(/\/+$/, "") || "/";
+
+    if (currentPath !== nextPath) {
+      const method = replace ? "replaceState" : "pushState";
+      window.history[method]({ appRoute: true }, "", path);
+    }
+
+    setActiveTab(route.activeTab);
+    setSelectedPostId(route.selectedPostId);
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const route = getRouteState();
+      setActiveTab(route.activeTab);
+      setSelectedPostId(route.selectedPostId);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   // Initial Load
   useEffect(() => {
@@ -397,7 +436,7 @@ export function App() {
       {/* Top Header Navigation */}
       <header className={`sticky top-0 z-40 transition-colors duration-300 ${activeTheme.headerBg}`}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => { setActiveTab("home"); setSelectedPostId(null); fetchPosts(); fetchTimeline(); }}>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => { navigate("/"); fetchPosts(); fetchTimeline(); }}>
             <img src={profile.avatar} alt={profile.name} className="w-9 h-9 rounded-full object-cover ring-2 ring-indigo-500/50" />
             <div className="hidden sm:block">
               <h1 className={`font-bold text-sm leading-tight ${activeTheme.textPrimary}`}>{profile.name}</h1>
@@ -408,7 +447,7 @@ export function App() {
           {/* Nav Tabs */}
           <nav className="flex items-center gap-1 sm:gap-2 text-sm">
             <button
-              onClick={() => { setActiveTab("home"); setSelectedPostId(null); fetchPosts(); fetchTimeline(); }}
+              onClick={() => { navigate("/"); fetchPosts(); fetchTimeline(); }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${activeTab === "home" && !selectedPostId ? activeTheme.navActive : activeTheme.navInactive
                 }`}
             >
@@ -417,7 +456,7 @@ export function App() {
             </button>
 
             <button
-              onClick={() => { setActiveTab("blog"); setSelectedPostId(null); fetchPosts(); fetchTimeline(); }}
+              onClick={() => { navigate("/blog"); fetchPosts(); fetchTimeline(); }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${activeTab === "blog" || selectedPostId ? activeTheme.navActive : activeTheme.navInactive
                 }`}
             >
@@ -432,7 +471,7 @@ export function App() {
             </button>
 
             <button
-              onClick={() => { setActiveTab("timeline"); setSelectedPostId(null); fetchPosts(); fetchTimeline(); }}
+              onClick={() => { navigate("/timeline"); fetchPosts(); fetchTimeline(); }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${activeTab === "timeline" ? activeTheme.navActive : activeTheme.navInactive
                 }`}
             >
@@ -441,7 +480,7 @@ export function App() {
             </button>
 
             <button
-              onClick={() => { setActiveTab("admin"); setSelectedPostId(null); }}
+              onClick={() => navigate("/admin")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${activeTab === "admin" ? activeTheme.navActive : activeTheme.navInactive
                 }`}
             >
@@ -492,12 +531,16 @@ export function App() {
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 relative z-10">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 relative">
         {selectedPostId ? (
           <PostDetailView
             postId={selectedPostId}
             onBack={() => {
-              setSelectedPostId(null);
+              if (window.history.state?.appRoute) {
+                window.history.back();
+              } else {
+                navigate("/", true);
+              }
               fetchPosts();
               fetchTimeline();
             }}
@@ -512,8 +555,8 @@ export function App() {
             links={links}
             socials={socials}
             posts={posts}
-            onSelectPost={(id) => setSelectedPostId(id)}
-            onGoBlog={() => setActiveTab("blog")}
+            onSelectPost={(id) => navigate(`/post/${id}`)}
+            onGoBlog={() => navigate("/blog")}
             theme={activeTheme}
           />
         ) : activeTab === "blog" ? (
@@ -526,11 +569,11 @@ export function App() {
             setSelectedTag={setSelectedTag}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-            onSelectPost={(id) => setSelectedPostId(id)}
+            onSelectPost={(id) => navigate(`/post/${id}`)}
             theme={activeTheme}
           />
         ) : activeTab === "timeline" ? (
-          <TimelineView timeline={timeline} onSelectPost={(id) => setSelectedPostId(id)} theme={activeTheme} />
+          <TimelineView timeline={timeline} onSelectPost={(id) => navigate(`/post/${id}`)} theme={activeTheme} />
         ) : activeTab === "admin" ? (
           <AdminView
             isAdmin={isAdmin}
@@ -558,17 +601,13 @@ export function App() {
       {/* Footer */}
       <footer className={`py-8 text-center text-xs transition-colors duration-300 relative z-10 ${activeTheme.footerBg}`}>
         <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© {new Date().getFullYear()} {profile.name}. Powered by Cloudflare Workers & D1.</p>
+          <p>© {new Date().getFullYear()} {profile.name}. Powered by Cloudflare Workers.</p>
           <div className="flex items-center gap-4">
-            <span>当前风格: <strong className="font-semibold">{activeTheme.badge}</strong></span>
-            <span>·</span>
+            {/* <span>当前风格: <strong className="font-semibold">{activeTheme.badge}</strong></span>
+            <span>·</span> */}
             <span>全站文章: <strong className="font-mono">{posts.length}</strong></span>
             <span>·</span>
             <span>全站访问: <strong className="font-mono">{stats?.totalVisits || 0}</strong></span>
-            <span>·</span>
-            <button onClick={() => { setActiveTab("admin"); }} className="text-indigo-500 hover:underline">
-              {isAdmin ? "已登录管理模式" : "管理入口"}
-            </button>
           </div>
         </div>
       </footer>
@@ -1851,6 +1890,17 @@ function AdminView({
                   className={`w-full rounded-lg p-2.5 text-xs mt-1 ${theme.inputBg}`}
                 />
               </div>
+
+              <div>
+                <label className={`text-xs ${theme.textMuted}`}>联系邮箱</label>
+                <input
+                  type="email"
+                  value={profileForm.email || ""}
+                  onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                  placeholder="name@example.com"
+                  className={`w-full rounded-lg p-2.5 text-xs mt-1 ${theme.inputBg}`}
+                />
+              </div>
             </div>
 
             <div>
@@ -1861,6 +1911,108 @@ function AdminView({
                 onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
                 className={`w-full rounded-lg p-3 text-xs mt-1 ${theme.inputBg}`}
               ></textarea>
+            </div>
+          </div>
+
+          <div className={`p-6 rounded-2xl border space-y-4 ${theme.cardBg}`}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h4 className={`text-sm font-bold ${theme.textPrimary}`}>社交平台配置</h4>
+                <p className={`text-xs mt-1 ${theme.textMuted}`}>配置主页中展示的社交账号和联系方式</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSocialsForm([
+                  ...socialsForm,
+                  { name: "新平台", url: "https://", icon: "link", color: "" }
+                ])}
+                className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1 ${theme.accentBg}`}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                添加平台
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {socialsForm.map((social, idx) => (
+                <div key={`${social.name}-${idx}`} className={`p-4 rounded-xl border space-y-3 ${theme.subCardBg}`}>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs font-bold ${theme.textSecondary}`}>平台 #{idx + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSocialsForm(socialsForm.filter((_, i) => i !== idx))}
+                      className="text-xs text-red-400 hover:underline flex items-center gap-1"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      删除
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className={`text-[10px] ${theme.textMuted}`}>平台名称</label>
+                      <input
+                        type="text"
+                        value={social.name || ""}
+                        onChange={(e) => {
+                          const updated = [...socialsForm];
+                          updated[idx] = { ...updated[idx], name: e.target.value };
+                          setSocialsForm(updated);
+                        }}
+                        className={`w-full rounded-lg px-3 py-2 text-xs mt-1 ${theme.inputBg}`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`text-[10px] ${theme.textMuted}`}>跳转 URL</label>
+                      <input
+                        type="text"
+                        value={social.url || ""}
+                        onChange={(e) => {
+                          const updated = [...socialsForm];
+                          updated[idx] = { ...updated[idx], url: e.target.value };
+                          setSocialsForm(updated);
+                        }}
+                        className={`w-full rounded-lg px-3 py-2 text-xs mt-1 ${theme.inputBg}`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`text-[10px] ${theme.textMuted}`}>图标标识</label>
+                      <input
+                        type="text"
+                        value={social.icon || "link"}
+                        placeholder="github / mail / globe"
+                        onChange={(e) => {
+                          const updated = [...socialsForm];
+                          updated[idx] = { ...updated[idx], icon: e.target.value };
+                          setSocialsForm(updated);
+                        }}
+                        className={`w-full rounded-lg px-3 py-2 text-xs mt-1 ${theme.inputBg}`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`text-[10px] ${theme.textMuted}`}>悬停颜色 class（可选）</label>
+                      <input
+                        type="text"
+                        value={social.color || ""}
+                        placeholder="hover:text-sky-500"
+                        onChange={(e) => {
+                          const updated = [...socialsForm];
+                          updated[idx] = { ...updated[idx], color: e.target.value };
+                          setSocialsForm(updated);
+                        }}
+                        className={`w-full rounded-lg px-3 py-2 text-xs mt-1 ${theme.inputBg}`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {socialsForm.length === 0 && (
+                <p className={`py-4 text-center text-xs ${theme.textMuted}`}>暂未配置社交平台，请点击“添加平台”。</p>
+              )}
             </div>
           </div>
 
