@@ -31,6 +31,11 @@ interface CommentRow {
   created_at: number;
 }
 
+const getAdminPassword = (env: Record<string, unknown> = {}) => {
+  const value = env.ADMIN_PASSWORD;
+  return typeof value === "string" && value.trim() ? value : "admin123";
+};
+
 const DEFAULT_CONFIG = {
   profile: {
     name: "陈明 (Alex Chen)",
@@ -233,10 +238,11 @@ export class App extends DurableObject {
 
 export class App extends DurableObject {
   private app: Hono;
-  private activeToken: string = "admin_session_token_2026";
+  private env: Record<string, unknown>;
 
   constructor(ctx: DurableObjectState, env: Record<string, unknown>) {
     super(ctx, env);
+    this.env = env || {};
     this.app = new Hono();
     this.initDatabase();
     this.setupRoutes();
@@ -296,6 +302,8 @@ export class App extends DurableObject {
   }
 
   private seedInitialData() {
+    const adminPassword = getAdminPassword(this.env);
+
     // Seed config
     this.ctx.storage.sql.exec(
       "INSERT OR REPLACE INTO config (key, value) VALUES ('site_config', ?)",
@@ -303,7 +311,11 @@ export class App extends DurableObject {
     );
     this.ctx.storage.sql.exec(
       "INSERT OR REPLACE INTO config (key, value) VALUES ('admin_password', ?)",
-      "admin123"
+      adminPassword
+    );
+    this.ctx.storage.sql.exec(
+      "INSERT OR REPLACE INTO config (key, value) VALUES ('admin_session_token', ?)",
+      ""
     );
 
     // Seed posts if empty
@@ -367,8 +379,15 @@ export class App extends DurableObject {
   private isAdminAuthorized(c: any): boolean {
     const authHeader = c.req.header("Authorization");
     if (!authHeader) return false;
+
     const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-    return token === this.activeToken || token === "admin123";
+    if (!token) return false;
+
+    const row = this.ctx.storage.sql.exec(
+      "SELECT value FROM config WHERE key = 'admin_session_token'"
+    ).toArray()[0] as { value: string } | undefined;
+
+    return !!row && row.value && token === row.value;
   }
 
   private setupRoutes() {
@@ -401,10 +420,15 @@ export class App extends DurableObject {
     this.app.post("/api/auth/login", async (c) => {
       const { password } = await c.req.json<{ password?: string }>();
       const row = this.ctx.storage.sql.exec("SELECT value FROM config WHERE key = 'admin_password'").toArray()[0] as { value: string } | undefined;
-      const adminPwd = row?.value || "admin123";
+      const adminPwd = row?.value;
 
       if (password === adminPwd) {
-        return c.json({ ok: true, token: this.activeToken, message: "登录成功" });
+        const token = crypto.randomUUID();
+        this.ctx.storage.sql.exec(
+          "INSERT OR REPLACE INTO config (key, value) VALUES ('admin_session_token', ?)",
+          token
+        );
+        return c.json({ ok: true, token, message: "登录成功" });
       } else {
         return c.json({ ok: false, error: "密码错误" }, 400);
       }
@@ -421,7 +445,7 @@ export class App extends DurableObject {
       }
       const { oldPassword, newPassword } = await c.req.json<{ oldPassword?: string; newPassword?: string }>();
       const row = this.ctx.storage.sql.exec("SELECT value FROM config WHERE key = 'admin_password'").toArray()[0] as { value: string } | undefined;
-      const currentPwd = row?.value || "admin123";
+      const currentPwd = row?.value;
 
       if (oldPassword !== currentPwd) {
         return c.json({ ok: false, error: "原密码不正确" }, 400);
@@ -431,6 +455,7 @@ export class App extends DurableObject {
       }
 
       this.ctx.storage.sql.exec("INSERT OR REPLACE INTO config (key, value) VALUES ('admin_password', ?)", newPassword);
+      this.ctx.storage.sql.exec("INSERT OR REPLACE INTO config (key, value) VALUES ('admin_session_token', ?)", "");
       return c.json({ ok: true, message: "密码修改成功" });
     });
 
@@ -783,7 +808,11 @@ export default {
       if (namespace && typeof namespace.get === "function") {
         const id = namespace.idFromName("default");
         const stub = namespace.get(id);
-        return stub.fetch(request);
+        if (stub && typeof stub.fetch === "function") {
+          const appInstance = stub as any;
+          appInstance.env = env;
+          return appInstance.fetch(request);
+        }
       }
 
       return new Response(JSON.stringify({ ok: false, error: "Durable Object binding missing" }), {

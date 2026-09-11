@@ -330,6 +330,12 @@ export function App() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const clearAdminSession = () => {
+    localStorage.removeItem("admin_token");
+    setAuthToken("");
+    setIsAdmin(false);
+  };
+
   const requestConfirm = (message, onConfirm) => {
     setConfirmDialog({ message, onConfirm });
   };
@@ -407,8 +413,7 @@ export function App() {
         .then((res) => {
           setIsAdmin(!!res.ok);
           if (!res.ok) {
-            localStorage.removeItem("admin_token");
-            setAuthToken("");
+            clearAdminSession();
           }
         })
         .catch(() => setIsAdmin(false));
@@ -543,9 +548,7 @@ export function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("admin_token");
-    setAuthToken("");
-    setIsAdmin(false);
+    clearAdminSession();
     showToast("已退出管理模式", "info");
   };
 
@@ -1552,7 +1555,7 @@ function AdminView({
               <Lock className="w-6 h-6" />
             </div>
             <h2 className={`text-2xl font-bold ${theme.textPrimary}`}>管理后台登录</h2>
-            <p className={`text-xs ${theme.textMuted}`}>默认密码：<code className="text-indigo-400 bg-black/20 px-1.5 py-0.5 rounded font-mono">admin123</code></p>
+            <p className={`text-xs ${theme.textMuted}`}>默认密码：请在 <code className="text-indigo-400 bg-black/20 px-1.5 py-0.5 rounded font-mono">wrangler.json</code> 里配置 <code className="text-indigo-400 bg-black/20 px-1.5 py-0.5 rounded font-mono">ADMIN_PASSWORD</code></p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -1689,7 +1692,8 @@ function AdminView({
       }).then((r) => r.json());
 
       if (res.ok) {
-        showToast("密码修改成功，请谨记新密码");
+        clearAdminSession();
+        showToast("密码修改成功，请谨记新密码", "info");
         setOldPwd("");
         setNewPwd("");
       } else {

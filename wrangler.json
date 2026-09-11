@@ -2,6 +2,9 @@
   "name": "homepage",
   "main": "src/index.ts",
   "compatibility_date": "2025-04-01",
+  "vars": {
+    "ADMIN_PASSWORD": "admin123"
+  },
   "assets": {
     "directory": "./public",
     "html_handling": "auto-trailing-slash",

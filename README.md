@@ -120,11 +120,23 @@ npx wrangler deploy
 - 查看访问统计
 - 修改后台密码
 
-默认管理员密码：
+默认管理员密码建议在 [wrangler.json](wrangler.json) 中配置：
+
+```json
+{
+  "vars": {
+    "ADMIN_PASSWORD": "your-strong-password"
+  }
+}
+```
+
+如果不配置，项目会回退到默认值：
 
 ```text
 admin123
 ```
+
+> 生产环境中务必替换为强密码，并不要把默认值用于正式部署。
 
 ---
 
@@ -316,11 +328,23 @@ The project includes a built-in admin panel that can be used directly from the f
 - view analytics
 - change the admin password
 
-Default admin password:
+Default admin password is configured in [wrangler.json](wrangler.json):
+
+```json
+{
+  "vars": {
+    "ADMIN_PASSWORD": "your-strong-password"
+  }
+}
+```
+
+If not configured, the app falls back to:
 
 ```text
 admin123
 ```
+
+> For production, replace the fallback value with a strong password and do not rely on the default.
 
 ---
 
