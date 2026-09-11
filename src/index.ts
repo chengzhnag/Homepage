@@ -851,8 +851,10 @@ export class App extends DurableObject {
 export default {
   async fetch(request: Request, env: any) {
     const url = new URL(request.url);
+    const normalizedPath = url.pathname.replace(/\/+$/, "") || "/";
+    const seoPaths = ["/robots.txt", "/sitemap.xml", "/rss.xml"];
 
-    if (url.pathname.startsWith("/api/") || ["/robots.txt", "/sitemap.xml", "/rss.xml"].includes(url.pathname)) {
+    if (url.pathname.startsWith("/api/") || seoPaths.includes(normalizedPath)) {
       const namespace = env.APP;
       if (namespace && typeof namespace.get === "function") {
         const id = namespace.idFromName("default");
@@ -860,7 +862,10 @@ export default {
         if (stub && typeof stub.fetch === "function") {
           const appInstance = stub as any;
           appInstance.env = env;
-          return appInstance.fetch(request);
+          const appRequest = normalizedPath === url.pathname
+            ? request
+            : new Request(new URL(`${normalizedPath}${url.search}`, url), request);
+          return appInstance.fetch(appRequest);
         }
       }
 
