@@ -36,6 +36,7 @@
 - 管理后台：支持文章管理、链接配置、主页配置、密码修改
 - 数据统计：访问量、文章数、评论数、热门文章排行
 - 可部署到 Cloudflare Workers：直接面向边缘网络提供服务
+- SEO 基础能力：提供 `robots.txt`、`sitemap.xml` 和 `rss.xml`
 
 ---
 
@@ -61,7 +62,8 @@
 │   ├── index.html          # 页面入口
 │   └── app.js              # 前端 React 逻辑与 UI 渲染
 ├── src/
-│   └── index.ts            # Worker 后端、API 路由、数据库初始化
+│   ├── index.ts             # Worker 后端、API 路由、数据库初始化
+│   └── seo.ts               # RSS、Sitemap、Robots 内容生成逻辑
 ├── package.json            # 项目依赖与脚本
 ├── wrangler.json           # Cloudflare Workers 配置
 ├── LICENSE                 # 开源协议
@@ -162,6 +164,14 @@ admin123
 - POST /api/auth/password：修改密码
 - POST /api/seed：重置示例数据
 
+### SEO 文件
+
+部署完成后，以下地址会自动生成：
+
+- `/robots.txt`：允许抓取公开页面，禁止抓取 API 和管理后台
+- `/sitemap.xml`：包含首页、博客、时间轴和所有已发布文章
+- `/rss.xml`：包含最近 20 篇已发布文章的 RSS 订阅
+
 ---
 
 ## 适用场景
@@ -182,8 +192,8 @@ admin123
 
 - 自定义域名绑定
 - 更完整的 SEO 结构化数据
-- RSS / Atom 订阅
-- Sitemap
+- RSS / Atom 订阅（RSS 已支持）
+- Sitemap（已支持）
 - 图片压缩与 CDN 加速
 - 日志监控与访问分析可视化
 - 更强的安全控制与权限管理

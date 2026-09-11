@@ -1,5 +1,12 @@
 import { DurableObject } from "cloudflare:workers";
 import { Hono } from "hono";
+import {
+  generateRobotsTxt,
+  generateRssXml,
+  generateSitemapXml,
+  getSiteOrigin,
+  type SeoPost
+} from "./seo";
 
 // Helper type definitions
 interface PostRow {
@@ -405,6 +412,48 @@ export class App extends DurableObject {
       return c.json({ ok: true, data });
     });
 
+    this.app.get("/robots.txt", (c) => {
+      const origin = getSiteOrigin(c.req.url);
+      return c.text(generateRobotsTxt(origin), 200, {
+        "Content-Type": "text/plain; charset=utf-8"
+      });
+    });
+
+    this.app.get("/sitemap.xml", (c) => {
+      const origin = getSiteOrigin(c.req.url);
+      const posts = this.ctx.storage.sql.exec(
+        "SELECT id, slug, title, summary, created_at, updated_at FROM posts WHERE status = 'published' ORDER BY updated_at DESC"
+      ).toArray() as unknown as SeoPost[];
+
+      return c.text(generateSitemapXml(origin, posts), 200, {
+        "Content-Type": "application/xml; charset=utf-8"
+      });
+    });
+
+    this.app.get("/rss.xml", (c) => {
+      const origin = getSiteOrigin(c.req.url);
+      const configRow = this.ctx.storage.sql.exec(
+        "SELECT value FROM config WHERE key = 'site_config'"
+      ).toArray()[0] as { value: string } | undefined;
+      let siteTitle = DEFAULT_CONFIG.profile.name;
+
+      if (configRow?.value) {
+        try {
+          siteTitle = JSON.parse(configRow.value).profile?.name || siteTitle;
+        } catch {
+          siteTitle = DEFAULT_CONFIG.profile.name;
+        }
+      }
+
+      const posts = this.ctx.storage.sql.exec(
+        "SELECT id, slug, title, summary, created_at, updated_at FROM posts WHERE status = 'published' ORDER BY created_at DESC LIMIT 20"
+      ).toArray() as unknown as SeoPost[];
+
+      return c.text(generateRssXml(origin, siteTitle, posts), 200, {
+        "Content-Type": "application/rss+xml; charset=utf-8"
+      });
+    });
+
     this.app.post("/api/config", async (c) => {
       if (!this.isAdminAuthorized(c)) {
         return c.json({ ok: false, error: "未授权或登录已过期" }, 401);
@@ -803,7 +852,7 @@ export default {
   async fetch(request: Request, env: any) {
     const url = new URL(request.url);
 
-    if (url.pathname.startsWith("/api/")) {
+    if (url.pathname.startsWith("/api/") || ["/robots.txt", "/sitemap.xml", "/rss.xml"].includes(url.pathname)) {
       const namespace = env.APP;
       if (namespace && typeof namespace.get === "function") {
         const id = namespace.idFromName("default");
