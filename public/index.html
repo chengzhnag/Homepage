@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN" class="dark">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,7 +20,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="alternate" type="application/rss+xml" title="chengzhnag个人主页 RSS" href="/rss.xml" />
   <base href="/" />
-  
+
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -61,19 +62,33 @@
   </script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+  <script>
+    var _hmt = _hmt || [];
+    (function () {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?bbd0eecdf67bf6242a4843c15903f017";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
   <style>
     /* Custom Scrollbar & Base Styles */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
     }
+
     ::-webkit-scrollbar-track {
       background: rgba(15, 23, 42, 0.4);
     }
+
     ::-webkit-scrollbar-thumb {
       background: rgba(100, 116, 139, 0.4);
       border-radius: 4px;
     }
+
     ::-webkit-scrollbar-thumb:hover {
       background: rgba(148, 163, 184, 0.6);
     }
@@ -88,10 +103,12 @@
       margin-top: 1rem;
       margin-bottom: 1rem;
     }
+
     .markdown-body code {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 0.88em;
     }
+
     .markdown-body table {
       display: block;
       width: 100%;
@@ -101,6 +118,7 @@
       font-size: 0.9rem;
       line-height: 1.6;
     }
+
     .markdown-body th,
     .markdown-body td {
       min-width: 8rem;
@@ -109,74 +127,125 @@
       text-align: left;
       vertical-align: top;
     }
+
     .markdown-dark th,
     .markdown-glass th {
       background: rgba(51, 65, 85, 0.65);
       color: #f8fafc;
       font-weight: 700;
     }
+
     .markdown-dark td,
     .markdown-glass td {
       color: #cbd5e1;
     }
+
     .markdown-dark tr:nth-child(even) td,
     .markdown-glass tr:nth-child(even) td {
       background: rgba(51, 65, 85, 0.2);
     }
+
     .markdown-minimal th {
       background: #f1f5f9;
       color: #0f172a;
       font-weight: 700;
     }
+
     .markdown-minimal td {
       color: #334155;
       border-color: #cbd5e1;
     }
+
     .markdown-minimal tr:nth-child(even) td {
       background: #f8fafc;
     }
-    
+
     /* Default & Dark Markdown */
     .markdown-body p {
       margin-bottom: 1.2rem;
       line-height: 1.8;
     }
-    .markdown-dark p, .markdown-glass p {
+
+    .markdown-dark p,
+    .markdown-glass p {
       color: #cbd5e1;
     }
-    .markdown-dark h1, .markdown-dark h2, .markdown-dark h3,
-    .markdown-glass h1, .markdown-glass h2, .markdown-glass h3 {
+
+    .markdown-dark h1,
+    .markdown-dark h2,
+    .markdown-dark h3,
+    .markdown-glass h1,
+    .markdown-glass h2,
+    .markdown-glass h3 {
       color: #f8fafc;
       font-weight: 700;
       margin-top: 1.8rem;
       margin-bottom: 0.8rem;
     }
-    .markdown-dark h1, .markdown-glass h1 { font-size: 1.75rem; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 0.5rem; }
-    .markdown-dark h2, .markdown-glass h2 { font-size: 1.4rem; }
-    .markdown-dark h3, .markdown-glass h3 { font-size: 1.15rem; }
+
+    .markdown-dark h1,
+    .markdown-glass h1 {
+      font-size: 1.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      padding-bottom: 0.5rem;
+    }
+
+    .markdown-dark h2,
+    .markdown-glass h2 {
+      font-size: 1.4rem;
+    }
+
+    .markdown-dark h3,
+    .markdown-glass h3 {
+      font-size: 1.15rem;
+    }
 
     /* Minimal Light Markdown */
-    .markdown-minimal p, .markdown-minimal ul, .markdown-minimal ol {
+    .markdown-minimal p,
+    .markdown-minimal ul,
+    .markdown-minimal ol {
       color: #334155;
       margin-bottom: 1.2rem;
       line-height: 1.8;
     }
-    .markdown-minimal h1, .markdown-minimal h2, .markdown-minimal h3 {
+
+    .markdown-minimal h1,
+    .markdown-minimal h2,
+    .markdown-minimal h3 {
       color: #0f172a;
       font-weight: 700;
       margin-top: 1.8rem;
       margin-bottom: 0.8rem;
     }
-    .markdown-minimal h1 { font-size: 1.75rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; }
-    .markdown-minimal h2 { font-size: 1.4rem; }
-    .markdown-minimal h3 { font-size: 1.15rem; }
 
-    .markdown-body ul, .markdown-body ol {
+    .markdown-minimal h1 {
+      font-size: 1.75rem;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 0.5rem;
+    }
+
+    .markdown-minimal h2 {
+      font-size: 1.4rem;
+    }
+
+    .markdown-minimal h3 {
+      font-size: 1.15rem;
+    }
+
+    .markdown-body ul,
+    .markdown-body ol {
       padding-left: 1.5rem;
       margin-bottom: 1.2rem;
     }
-    .markdown-body ul { list-style-type: disc; }
-    .markdown-body ol { list-style-type: decimal; }
+
+    .markdown-body ul {
+      list-style-type: disc;
+    }
+
+    .markdown-body ol {
+      list-style-type: decimal;
+    }
+
     .markdown-body blockquote {
       border-left: 4px solid #6366f1;
       padding-left: 1rem;
@@ -195,25 +264,28 @@
       left: -10%;
       width: 50vw;
       height: 50vw;
-      background: radial-gradient(circle, rgba(99,102,241,0.25) 0%, rgba(0,0,0,0) 70%);
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(0, 0, 0, 0) 70%);
       pointer-events: none;
       z-index: 0;
       filter: blur(60px);
     }
+
     .glass-orb-2 {
       position: fixed;
       bottom: -10%;
       right: -10%;
       width: 55vw;
       height: 55vw;
-      background: radial-gradient(circle, rgba(168,85,247,0.2) 0%, rgba(0,0,0,0) 70%);
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, rgba(0, 0, 0, 0) 70%);
       pointer-events: none;
       z-index: 0;
       filter: blur(60px);
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-indigo-500 selection:text-white antialiased">
+
+<body
+  class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-indigo-500 selection:text-white antialiased">
   <div id="root">
     <div class="flex items-center justify-center min-h-screen">
       <div class="animate-pulse text-slate-400 flex flex-col items-center gap-3">
@@ -225,4 +297,5 @@
 
   <script type="text/babel" data-type="module" data-presets="react" src="./app.js"></script>
 </body>
+
 </html>
