@@ -684,7 +684,7 @@ export function App() {
               <span className="hidden sm:inline">{activeTheme.name}</span>
             </button>
 
-            <div className={`absolute right-0 mt-1 w-48 rounded-xl border p-1.5 shadow-2xl z-50 backdrop-blur-xl opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all ${themeStyle === "minimal" ? "bg-white border-slate-200 text-slate-800" : "bg-slate-900/95 border-slate-800 text-slate-100"}`}>
+            <div className={`absolute right-0 w-48 rounded-xl border p-1.5 shadow-2xl z-50 backdrop-blur-xl opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all ${themeStyle === "minimal" ? "bg-white border-slate-200 text-slate-800" : "bg-slate-900/95 border-slate-800 text-slate-100"}`}>
               <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-700/50 mb-1">
                 风格主题模式
               </div>
@@ -1698,22 +1698,6 @@ function AdminView({
     } catch (e) { }
   };
 
-  // Handle Reset Seed
-  const handleResetSeed = async () => {
-    if (!confirm("确定要重置数据库示例数据吗？（当前自定义数据将被还原为演示默认值）")) return;
-    try {
-      const res = await fetch("./api/seed", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${authToken}` }
-      }).then((r) => r.json());
-
-      if (res.ok) {
-        showToast("示例数据已重置");
-        window.location.reload();
-      }
-    } catch (e) { }
-  };
-
   return (
     <div className="space-y-6">
       {/* Admin Top Header */}
@@ -2273,16 +2257,6 @@ function AdminView({
               ))}
             </div>
           </div>
-
-          {/* <div className={`pt-4 border-t flex justify-end ${theme.border}`}>
-            <button
-              type="button"
-              onClick={handleResetSeed}
-              className="px-4 py-2 rounded-lg bg-red-950/50 hover:bg-red-900 border border-red-800 text-red-300 text-xs font-semibold"
-            >
-              一键重置示例演示数据
-            </button>
-          </div> */}
         </div>
       )}
 
