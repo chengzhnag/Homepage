@@ -515,6 +515,10 @@ export class App extends DurableObject {
       const tag = c.req.query("tag");
       const search = c.req.query("search");
 
+      if (statusFilter !== "published" && !this.isAdminAuthorized(c)) {
+        return c.json({ ok: false, error: "未授权" }, 401);
+      }
+
       let sql = "SELECT id, slug, title, summary, cover_image, category, tags, status, is_pinned, views, created_at, updated_at FROM posts WHERE 1=1";
       const params: any[] = [];
 
@@ -573,6 +577,10 @@ export class App extends DurableObject {
       }
 
       if (!post) {
+        return c.json({ ok: false, error: "文章不存在" }, 404);
+      }
+
+      if (post.status !== "published" && !this.isAdminAuthorized(c)) {
         return c.json({ ok: false, error: "文章不存在" }, 404);
       }
 
@@ -717,6 +725,15 @@ export class App extends DurableObject {
     // 4. COMMENTS
     this.app.get("/api/posts/:id/comments", (c) => {
       const postId = Number(c.req.param("id"));
+      const post = this.ctx.storage.sql.exec(
+        "SELECT status FROM posts WHERE id = ?",
+        postId
+      ).toArray()[0] as { status: string } | undefined;
+
+      if (!post || (post.status !== "published" && !this.isAdminAuthorized(c))) {
+        return c.json({ ok: false, error: "文章不存在" }, 404);
+      }
+
       const comments = this.ctx.storage.sql.exec(
         "SELECT * FROM comments WHERE post_id = ? ORDER BY created_at ASC",
         postId
@@ -727,6 +744,16 @@ export class App extends DurableObject {
 
     this.app.post("/api/posts/:id/comments", async (c) => {
       const postId = Number(c.req.param("id"));
+      const post = this.ctx.storage.sql.exec(
+        "SELECT status FROM posts WHERE id = ?",
+        postId
+      ).toArray()[0] as { status: string } | undefined;
+      const isAdmin = this.isAdminAuthorized(c);
+
+      if (!post || (post.status !== "published" && !isAdmin)) {
+        return c.json({ ok: false, error: "文章不存在" }, 404);
+      }
+
       const body = await c.req.json<{
         author_name: string;
         author_email?: string;
@@ -739,7 +766,6 @@ export class App extends DurableObject {
         return c.json({ ok: false, error: "请填写称呼与评论内容" }, 400);
       }
 
-      const isAdmin = this.isAdminAuthorized(c);
       const nameClean = body.author_name.trim();
       const avatarSeed = encodeURIComponent(nameClean);
       const avatarUrl = isAdmin
@@ -798,11 +824,13 @@ export class App extends DurableObject {
     this.app.get("/api/stats", (c) => {
       const totalVisits = this.ctx.storage.sql.exec("SELECT COUNT(*) as cnt FROM visits").one().cnt as number;
       const totalPosts = this.ctx.storage.sql.exec("SELECT COUNT(*) as cnt FROM posts WHERE status = 'published'").one().cnt as number;
-      const totalComments = this.ctx.storage.sql.exec("SELECT COUNT(*) as cnt FROM comments").one().cnt as number;
+      const totalComments = this.ctx.storage.sql.exec(
+        "SELECT COUNT(*) as cnt FROM comments c JOIN posts p ON c.post_id = p.id WHERE p.status = 'published'"
+      ).one().cnt as number;
 
       // Top viewed posts
       const topPosts = this.ctx.storage.sql.exec(
-        "SELECT id, slug, title, views, category FROM posts ORDER BY views DESC LIMIT 5"
+        "SELECT id, slug, title, views, category FROM posts WHERE status = 'published' ORDER BY views DESC LIMIT 5"
       ).toArray();
 
       // Recent 7 days visit count
@@ -817,6 +845,7 @@ export class App extends DurableObject {
       const recentComments = this.ctx.storage.sql.exec(
         `SELECT c.id, c.author_name, c.content, c.created_at, p.title as post_title, p.id as post_id
          FROM comments c JOIN posts p ON c.post_id = p.id
+         WHERE p.status = 'published'
          ORDER BY c.created_at DESC LIMIT 5`
       ).toArray();
 

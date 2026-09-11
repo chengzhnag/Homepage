@@ -229,8 +229,23 @@ function formatRelativeTime(ts) {
 }
 
 function renderMarkdown(content = "") {
-  if (!window.marked) return content;
-  return window.marked.parse(content, { gfm: true, breaks: false });
+  const parsedContent = window.marked
+    ? window.marked.parse(content, { gfm: true, breaks: false })
+    : escapeHtml(content);
+
+  if (!window.DOMPurify) return escapeHtml(parsedContent);
+  return window.DOMPurify.sanitize(parsedContent, {
+    USE_PROFILES: { html: true }
+  });
+}
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 const DEFAULT_COVER_IMAGES = [
@@ -443,10 +458,12 @@ export function App() {
     }
   };
 
-  const fetchPosts = async () => {
+  const fetchPosts = async (includeDrafts = isAdmin, token = authToken) => {
     try {
       const [postsRes, statsRes] = await Promise.all([
-        fetch("./api/posts?status=published").then((r) => r.json()),
+        fetch(`./api/posts?status=${includeDrafts ? "all" : "published"}`, includeDrafts ? {
+          headers: { Authorization: `Bearer ${token}` }
+        } : undefined).then((r) => r.json()),
         fetch("./api/stats").then((r) => r.json())
       ]);
       if (postsRes.ok) {
@@ -537,6 +554,7 @@ export function App() {
         setAuthToken(res.token);
         localStorage.setItem("admin_token", res.token);
         setIsAdmin(true);
+        fetchPosts(true, res.token);
         setLoginPassword("");
         showToast("后台已成功登录");
       } else {
@@ -549,6 +567,7 @@ export function App() {
 
   const handleLogout = () => {
     clearAdminSession();
+    fetchPosts(false);
     showToast("已退出管理模式", "info");
   };
 
@@ -1645,7 +1664,9 @@ function AdminView({
 
   const handleEditPost = async (post) => {
     try {
-      const res = await fetch(`./api/posts/${post.id}`).then((r) => r.json());
+      const res = await fetch(`./api/posts/${post.id}`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      }).then((r) => r.json());
       if (res.ok && res.post) {
         setEditingPost(res.post);
       } else {
