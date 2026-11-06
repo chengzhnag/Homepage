@@ -42,25 +42,31 @@
     }
   </script>
 
-  <!-- Marked Markdown Parser & Highlight.js -->
-  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <!-- Marked Markdown Parser (已替换为 cdn.jsdmirror.cn) -->
+  <script src="https://cdn.jsdmirror.cn/ajax/libs/marked/12.0.0/marked.min.js"></script>
 
-  <!-- React & Lucide Importmap -->
+  <!-- DOMPurify (已替换为 cdn.jsdmirror.cn) -->
+  <script src="https://cdn.jsdmirror.cn/ajax/libs/dompurify/3.2.6/purify.min.js"></script>
+
+  <!-- Highlight.js (已替换为 cdn.jsdmirror.cn) -->
+  <link rel="stylesheet" href="https://cdn.jsdmirror.cn/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdn.jsdmirror.cn/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <!-- React & Lucide Importmap (已替换为 cdn.jsdmirror.cn ESM 版本) -->
   <script type="importmap">
   {
     "imports": {
-      "react": "https://esm.sh/react@18.3.1",
-      "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
-      "react-dom": "https://esm.sh/react-dom@18.3.1",
-      "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
-      "lucide-react": "https://esm.sh/lucide-react@0.344.0?external=react,react-dom"
+      "react": "https://cdn.jsdmirror.cn/esm/react@18.3.1",
+      "react/jsx-runtime": "https://cdn.jsdmirror.cn/esm/react@18.3.1/jsx-runtime",
+      "react-dom": "https://cdn.jsdmirror.cn/esm/react-dom@18.3.1",
+      "react-dom/client": "https://cdn.jsdmirror.cn/esm/react-dom@18.3.1/client",
+      "lucide-react": "https://cdn.jsdmirror.cn/esm/lucide-react@0.344.0?external=react,react-dom"
     }
   }
   </script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Babel Standalone (已替换为 cdn.jsdmirror.cn) -->
+  <script src="https://cdn.jsdmirror.cn/ajax/libs/babel-standalone/8.1.1/babel.min.js"></script>
 
   <script>
     var _hmt = _hmt || [];
