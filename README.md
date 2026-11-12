@@ -48,6 +48,7 @@
 - SQLite / Cloudflare Storage SQL
 - React + JSX
 - Tailwind CSS
+- esbuild
 - Marked
 - Highlight.js
 - Lucide React
@@ -60,11 +61,14 @@
 .
 ├── public/
 │   ├── index.html          # 页面入口
-│   └── app.js              # 前端 React 逻辑与 UI 渲染
+│   └── assets/             # 构建生成的前端 JS/CSS
 ├── src/
 │   ├── index.ts             # Worker 后端、API 路由、数据库初始化
+│   ├── client.jsx           # 前端 React 逻辑与 UI 渲染
+│   ├── styles.css           # Tailwind CSS 入口
 │   └── seo.ts               # RSS、Sitemap、Robots 内容生成逻辑
 ├── package.json            # 项目依赖与脚本
+├── tailwind.config.js      # Tailwind 配置
 ├── wrangler.json           # Cloudflare Workers 配置
 ├── LICENSE                 # 开源协议
 ├── README.md               # 项目说明文档
@@ -87,6 +91,8 @@ npm install
 npx wrangler dev
 ```
 
+Wrangler 会根据配置自动执行 `npm run build`，将 React 前端打包并生成 Tailwind 静态 CSS。
+
 访问地址：
 
 ```text
@@ -107,6 +113,8 @@ http://localhost:8787
 npx wrangler login
 npx wrangler deploy
 ```
+
+部署前 Wrangler 会自动执行前端构建。
 
 部署完成后，可在 Cloudflare Dashboard 中查看站点、访问日志和相关配置。
 
@@ -265,6 +273,7 @@ The main goal is to provide a single website that covers:
 - SQLite / Cloudflare Storage SQL
 - React + JSX
 - Tailwind CSS
+- esbuild
 - Marked
 - Highlight.js
 - Lucide React
@@ -277,10 +286,14 @@ The main goal is to provide a single website that covers:
 .
 ├── public/
 │   ├── index.html          # HTML entry
-│   └── app.js              # Frontend React logic and UI rendering
+│   └── assets/             # Generated frontend JS and CSS
 ├── src/
-│   └── index.ts            # Worker backend, API routes, and database setup
+│   ├── index.ts            # Worker backend, API routes, and database setup
+│   ├── client.jsx          # Frontend React logic and UI rendering
+│   ├── styles.css          # Tailwind CSS entry
+│   └── seo.ts              # RSS, sitemap, and robots generation
 ├── package.json            # Project dependencies and scripts
+├── tailwind.config.js      # Tailwind configuration
 ├── wrangler.json           # Cloudflare Workers configuration
 ├── LICENSE                 # Open source license
 ├── README.md               # Project documentation
@@ -303,6 +316,8 @@ npm install
 npx wrangler dev
 ```
 
+Wrangler automatically runs `npm run build` to bundle React and generate static Tailwind CSS.
+
 Local URL:
 
 ```text
@@ -323,6 +338,8 @@ http://localhost:8787
 npx wrangler login
 npx wrangler deploy
 ```
+
+Wrangler automatically builds the frontend before deployment.
 
 After deployment, you can monitor the site, logs, and traffic in the Cloudflare Dashboard.
 

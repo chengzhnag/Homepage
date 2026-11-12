@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { createRoot } from "react-dom/client";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
+import "highlight.js/styles/atom-one-dark.css";
 import {
   User, Link2, BookOpen, Clock, Eye, MessageSquare, Settings,
   Plus, Trash2, Edit, Sparkles, Coffee, Code, FileText, ChevronRight,
@@ -229,23 +232,10 @@ function formatRelativeTime(ts) {
 }
 
 function renderMarkdown(content = "") {
-  const parsedContent = window.marked
-    ? window.marked.parse(content, { gfm: true, breaks: false })
-    : escapeHtml(content);
-
-  if (!window.DOMPurify) return escapeHtml(parsedContent);
-  return window.DOMPurify.sanitize(parsedContent, {
+  const parsedContent = marked.parse(content, { gfm: true, breaks: false });
+  return DOMPurify.sanitize(parsedContent, {
     USE_PROFILES: { html: true }
   });
-}
-
-function escapeHtml(value = "") {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
-    .replace(/'/g, "&#039;");
 }
 
 const DEFAULT_COVER_IMAGES = [

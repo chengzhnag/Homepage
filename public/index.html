@@ -21,52 +21,8 @@
   <link rel="alternate" type="application/rss+xml" title="chengzhnag个人主页 RSS" href="/rss.xml" />
   <base href="/" />
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              50: '#f0f9ff',
-              100: '#e0f2fe',
-              500: '#0284c7',
-              600: '#0284c7',
-              700: '#0369a1',
-            }
-          }
-        }
-      }
-    }
-  </script>
-
-  <!-- Marked Markdown Parser (已替换为 cdn.jsdmirror.cn) -->
-  <script src="https://cdn.jsdmirror.cn/ajax/libs/marked/12.0.0/marked.min.js"></script>
-
-  <!-- DOMPurify (已替换为 cdn.jsdmirror.cn) -->
-  <script src="https://cdn.jsdmirror.cn/ajax/libs/dompurify/3.2.6/purify.min.js"></script>
-
-  <!-- Highlight.js (已替换为 cdn.jsdmirror.cn) -->
-  <link rel="stylesheet" href="https://cdn.jsdmirror.cn/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-  <script src="https://cdn.jsdmirror.cn/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-
-  <!-- React & Lucide Importmap (已替换为 cdn.jsdmirror.cn ESM 版本) -->
-  <script type="importmap">
-  {
-    "imports": {
-      "react": "https://esm.sh/react@18.3.1",
-      "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
-      "react-dom": "https://esm.sh/react-dom@18.3.1",
-      "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
-      "lucide-react": "https://esm.sh/lucide-react@0.344.0?external=react,react-dom"
-    }
-  }
-  </script>
-
-  <!-- Babel Standalone (已替换为 cdn.jsdmirror.cn) -->
-  <script src="https://cdn.jsdmirror.cn/ajax/libs/babel-standalone/8.1.1/babel.min.js"></script>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="stylesheet" href="/assets/app.css">
 
   <script>
     var _hmt = _hmt || [];
@@ -301,7 +257,7 @@
     </div>
   </div>
 
-  <script type="text/babel" data-type="module" data-presets="react" src="./app.js"></script>
+  <script type="module" src="/assets/app.js"></script>
 </body>
 
 </html>
