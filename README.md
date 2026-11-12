@@ -125,6 +125,7 @@ npx wrangler deploy
 项目内置管理后台，可以直接在前端页面中进行配置：
 
 - 发布、编辑、删除文章
+- 导出文章 JSON 备份，并按 slug 合并导入
 - 管理链接聚合列表
 - 修改个人资料和主题配置
 - 查看访问统计
@@ -161,6 +162,8 @@ admin123
 - POST /api/posts：新建文章
 - PUT /api/posts/:id：更新文章
 - DELETE /api/posts/:id：删除文章
+- GET /api/admin/posts/export：导出文章 JSON（需管理员登录）
+- POST /api/admin/posts/import：校验并合并导入文章 JSON（需管理员登录）
 - GET /api/timeline：获取时间轴数据
 - GET /api/stats：获取统计数据
 - POST /api/visit：记录访问
@@ -171,6 +174,8 @@ admin123
 - GET /api/auth/verify：校验登录状态
 - POST /api/auth/password：修改密码
 - POST /api/seed：重置示例数据
+
+文章备份使用带版本号的 JSON 文件，只包含文章内容与发布元数据，不包含评论、访问记录或站点配置。导入时会先校验文件并要求确认；新 slug 会创建文章，已存在的 slug 会更新文章内容与元数据，同时保留本地文章 ID 和已有评论。导入整体使用数据库事务，失败时不会保留部分导入结果。
 
 ### SEO 文件
 
@@ -350,6 +355,7 @@ After deployment, you can monitor the site, logs, and traffic in the Cloudflare 
 The project includes a built-in admin panel that can be used directly from the front-end interface to:
 
 - create, edit, and delete posts
+- export and merge-import versioned JSON post backups
 - manage link aggregation items
 - update profile and theme settings
 - view analytics
@@ -386,6 +392,8 @@ The project exposes the following core APIs:
 - POST /api/posts
 - PUT /api/posts/:id
 - DELETE /api/posts/:id
+- GET /api/admin/posts/export (admin authentication required)
+- POST /api/admin/posts/import (admin authentication required)
 - GET /api/timeline
 - GET /api/stats
 - POST /api/visit
@@ -396,6 +404,8 @@ The project exposes the following core APIs:
 - GET /api/auth/verify
 - POST /api/auth/password
 - POST /api/seed
+
+Post backups use a versioned JSON file containing post content and publishing metadata only; comments, visit records, and site configuration are excluded. Imports are validated and confirmed before processing. New slugs create posts, while matching slugs update the post and preserve the local ID and existing comments. The import runs in a database transaction, so a failed import does not leave partial changes.
 
 ---
 

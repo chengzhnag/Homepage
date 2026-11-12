@@ -38,6 +38,114 @@ interface CommentRow {
   created_at: number;
 }
 
+interface BlogImportPost {
+  slug: string;
+  title: string;
+  summary: string;
+  content: string;
+  cover_image: string;
+  category: string;
+  tags: string[];
+  status: string;
+  is_pinned: 0 | 1;
+  views: number;
+  created_at: number;
+  updated_at: number;
+}
+
+const BLOG_EXPORT_FORMAT = "homepage-blog-export";
+const BLOG_EXPORT_VERSION = 1;
+const MAX_BLOG_IMPORT_BYTES = 5 * 1024 * 1024;
+const MAX_BLOG_IMPORT_POSTS = 2000;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function validateBlogImport(value: unknown): { posts: BlogImportPost[]; error?: string } {
+  if (!isRecord(value) || value.format !== BLOG_EXPORT_FORMAT || value.version !== BLOG_EXPORT_VERSION) {
+    return { posts: [], error: "文件格式或版本不受支持" };
+  }
+  if (!Array.isArray(value.posts) || value.posts.length > MAX_BLOG_IMPORT_POSTS) {
+    return { posts: [], error: `文章列表无效，最多支持 ${MAX_BLOG_IMPORT_POSTS} 篇` };
+  }
+
+  const slugs = new Set<string>();
+  const posts: BlogImportPost[] = [];
+
+  for (let index = 0; index < value.posts.length; index += 1) {
+    const item = value.posts[index];
+    if (!isRecord(item)) {
+      return { posts: [], error: `第 ${index + 1} 篇文章格式无效` };
+    }
+
+    const {
+      slug, title, summary, content, cover_image, category, tags,
+      status, is_pinned, views, created_at, updated_at
+    } = item;
+
+    if (typeof slug !== "string" || !slug.trim() || slug.length > 200) {
+      return { posts: [], error: `第 ${index + 1} 篇文章的 slug 无效` };
+    }
+    if (slugs.has(slug)) {
+      return { posts: [], error: `文件中存在重复 slug：${slug}` };
+    }
+    slugs.add(slug);
+
+    if (typeof title !== "string" || !title.trim() || title.length > 500) {
+      return { posts: [], error: `第 ${index + 1} 篇文章的标题无效` };
+    }
+    if (typeof summary !== "string" || summary.length > 10000) {
+      return { posts: [], error: `第 ${index + 1} 篇文章的摘要无效` };
+    }
+    if (typeof content !== "string" || !content.trim()) {
+      return { posts: [], error: `第 ${index + 1} 篇文章的正文无效` };
+    }
+    if (typeof cover_image !== "string" || cover_image.length > 5000) {
+      return { posts: [], error: `第 ${index + 1} 篇文章的封面链接无效` };
+    }
+    if (typeof category !== "string" || category.length > 200) {
+      return { posts: [], error: `第 ${index + 1} 篇文章的分类无效` };
+    }
+    const tagList = Array.isArray(tags)
+      ? tags.filter((tag: unknown): tag is string => typeof tag === "string" && tag.length <= 100)
+      : [];
+    if (!Array.isArray(tags) || tags.length > 100 || tagList.length !== tags.length) {
+      return { posts: [], error: `第 ${index + 1} 篇文章的标签无效` };
+    }
+    if (typeof status !== "string" || !status.trim() || status.length > 50) {
+      return { posts: [], error: `第 ${index + 1} 篇文章的状态无效` };
+    }
+    if (is_pinned !== 0 && is_pinned !== 1) {
+      return { posts: [], error: `第 ${index + 1} 篇文章的置顶状态无效` };
+    }
+    if (typeof views !== "number" || !Number.isSafeInteger(views) || views < 0) {
+      return { posts: [], error: `第 ${index + 1} 篇文章的阅读数无效` };
+    }
+    if (typeof created_at !== "number" || !Number.isSafeInteger(created_at) || created_at < 0
+      || typeof updated_at !== "number" || !Number.isSafeInteger(updated_at) || updated_at < 0) {
+      return { posts: [], error: `第 ${index + 1} 篇文章的时间无效` };
+    }
+
+    posts.push({
+      slug,
+      title,
+      summary,
+      content,
+      cover_image,
+      category,
+      tags: tagList,
+      status,
+      is_pinned,
+      views,
+      created_at,
+      updated_at
+    });
+  }
+
+  return { posts };
+}
+
 const getAdminPassword = (env: Record<string, unknown> = {}) => {
   const value = env.ADMIN_PASSWORD;
   return typeof value === "string" && value.trim() ? value : "admin123";
@@ -509,6 +617,136 @@ export class App extends DurableObject {
     });
 
     // 2. BLOG POSTS
+    this.app.get("/api/admin/posts/export", (c) => {
+      if (!this.isAdminAuthorized(c)) {
+        return c.json({ ok: false, error: "未授权" }, 401);
+      }
+
+      try {
+        const rows = this.ctx.storage.sql.exec(
+          "SELECT slug, title, summary, content, cover_image, category, tags, status, is_pinned, views, created_at, updated_at FROM posts ORDER BY created_at ASC"
+        ).toArray();
+        const posts = rows.map((post: any) => {
+          let tags: unknown = post.tags;
+          if (typeof tags === "string") {
+            tags = JSON.parse(tags);
+          }
+          if (!Array.isArray(tags) || !tags.every((tag) => typeof tag === "string")) {
+            throw new Error(`文章 ${post.slug} 的标签数据无效`);
+          }
+          if (typeof post.slug !== "string" || !post.slug.trim()
+            || typeof post.title !== "string" || !post.title.trim()
+            || typeof post.content !== "string") {
+            throw new Error("文章内容缺少必需字段");
+          }
+          return {
+            ...post,
+            summary: typeof post.summary === "string" ? post.summary : "",
+            cover_image: typeof post.cover_image === "string" ? post.cover_image : "",
+            category: typeof post.category === "string" ? post.category : "未分类",
+            tags
+          };
+        });
+
+        c.header("Content-Disposition", 'attachment; filename="homepage-blog-export.json"');
+        return c.json({
+          format: BLOG_EXPORT_FORMAT,
+          version: BLOG_EXPORT_VERSION,
+          exportedAt: new Date().toISOString(),
+          posts
+        });
+      } catch (error) {
+        console.error("Failed to export blog posts:", error);
+        return c.json({ ok: false, error: "导出文章失败，请检查文章数据后重试" }, 500);
+      }
+    });
+
+    this.app.post("/api/admin/posts/import", async (c) => {
+      if (!this.isAdminAuthorized(c)) {
+        return c.json({ ok: false, error: "未授权" }, 401);
+      }
+
+      const contentLength = Number(c.req.header("Content-Length") || 0);
+      if (contentLength > MAX_BLOG_IMPORT_BYTES) {
+        return c.json({ ok: false, error: "导入文件不能超过 5 MB" }, 413);
+      }
+
+      const rawBody = await c.req.text();
+      if (new TextEncoder().encode(rawBody).byteLength > MAX_BLOG_IMPORT_BYTES) {
+        return c.json({ ok: false, error: "导入文件不能超过 5 MB" }, 413);
+      }
+
+      let payload: unknown;
+      try {
+        payload = JSON.parse(rawBody);
+      } catch (error) {
+        if (error instanceof SyntaxError) {
+          return c.json({ ok: false, error: "文件不是有效的 JSON" }, 400);
+        }
+        throw error;
+      }
+
+      const validation = validateBlogImport(payload);
+      if (validation.error) {
+        return c.json({ ok: false, error: validation.error }, 400);
+      }
+
+      try {
+        const result = this.ctx.storage.transactionSync(() => {
+          const existingSlugs = new Set(
+            this.ctx.storage.sql.exec("SELECT slug FROM posts").toArray()
+              .map((row: any) => row.slug)
+          );
+          let created = 0;
+          let updated = 0;
+
+          for (const post of validation.posts) {
+            if (existingSlugs.has(post.slug)) {
+              updated += 1;
+            } else {
+              created += 1;
+            }
+
+            this.ctx.storage.sql.exec(
+              `INSERT INTO posts (slug, title, summary, content, cover_image, category, tags, status, is_pinned, views, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(slug) DO UPDATE SET
+                 title = excluded.title,
+                 summary = excluded.summary,
+                 content = excluded.content,
+                 cover_image = excluded.cover_image,
+                 category = excluded.category,
+                 tags = excluded.tags,
+                 status = excluded.status,
+                 is_pinned = excluded.is_pinned,
+                 views = excluded.views,
+                 created_at = excluded.created_at,
+                 updated_at = excluded.updated_at`,
+              post.slug,
+              post.title,
+              post.summary,
+              post.content,
+              post.cover_image,
+              post.category,
+              JSON.stringify(post.tags),
+              post.status,
+              post.is_pinned,
+              post.views,
+              post.created_at,
+              post.updated_at
+            );
+          }
+
+          return { created, updated };
+        });
+
+        return c.json({ ok: true, ...result, total: validation.posts.length });
+      } catch (error) {
+        console.error("Failed to import blog posts:", error);
+        return c.json({ ok: false, error: "导入失败，数据未写入，请检查文件后重试" }, 500);
+      }
+    });
+
     this.app.get("/api/posts", (c) => {
       const statusFilter = c.req.query("status") || "published";
       const category = c.req.query("category");

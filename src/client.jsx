@@ -9,7 +9,7 @@ import {
   Search, Share2, Tag, Check, LogIn, LogOut, ArrowLeft, ArrowUp, BarChart2,
   ShieldCheck, Lock, ExternalLink, Mail, Github, Twitter, RefreshCw,
   Send, Layers, ThumbsUp, Calendar, MapPin, Globe, Tv, Bookmark, Download,
-  Sun, Moon, Palette, Sliders, CheckCircle2
+  Upload, Sun, Moon, Palette, Sliders, CheckCircle2
 } from "lucide-react";
 // Theme Style Presets Definition
 export const THEME_PRESETS = {
@@ -1536,6 +1536,8 @@ function AdminView({
 }) {
   const [editingPost, setEditingPost] = useState(null); // Null or Post object to edit/create
   const [deletingPostId, setDeletingPostId] = useState(null);
+  const [transferBusy, setTransferBusy] = useState(false);
+  const importInputRef = useRef(null);
 
   // Profile config form
   const [profileForm, setProfileForm] = useState(config?.profile || {});
@@ -1689,6 +1691,92 @@ function AdminView({
     });
   };
 
+  const handleExportPosts = async () => {
+    setTransferBusy(true);
+    try {
+      const response = await fetch("./api/admin/posts/export", {
+        headers: { Authorization: `Bearer ${authToken}` }
+      });
+      const result = await response.json();
+      if (!response.ok || result.ok === false) {
+        throw new Error(result.error || "导出文章失败");
+      }
+
+      const url = URL.createObjectURL(new Blob([JSON.stringify(result, null, 2)], {
+        type: "application/json;charset=utf-8"
+      }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `homepage-blog-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast(`已导出 ${result.posts?.length || 0} 篇文章`);
+    } catch (error) {
+      showToast(error.message || "导出文章失败", "error");
+    } finally {
+      setTransferBusy(false);
+    }
+  };
+
+  const handleImportFile = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("导入文件不能超过 5 MB", "error");
+      return;
+    }
+
+    try {
+      const data = JSON.parse(await file.text());
+      if (data?.format !== "homepage-blog-export" || data?.version !== 1 || !Array.isArray(data.posts)) {
+        showToast("文件格式或版本不受支持", "error");
+        return;
+      }
+
+      const importedSlugs = data.posts.map((post) => post?.slug);
+      if (importedSlugs.some((slug) => typeof slug !== "string" || !slug.trim())
+        || new Set(importedSlugs).size !== importedSlugs.length) {
+        showToast("文章列表中存在无效或重复的 slug", "error");
+        return;
+      }
+
+      const existingSlugs = new Set(posts.map((post) => post.slug));
+      const createdCount = importedSlugs.filter((slug) => !existingSlugs.has(slug)).length;
+      const updatedCount = importedSlugs.length - createdCount;
+      requestConfirm(
+        `将导入 ${importedSlugs.length} 篇文章（新增 ${createdCount} 篇，覆盖更新 ${updatedCount} 篇同 slug 文章；已有评论会保留）。确认继续吗？`,
+        async () => {
+          setTransferBusy(true);
+          try {
+            const response = await fetch("./api/admin/posts/import", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${authToken}`
+              },
+              body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (!response.ok || !result.ok) {
+              throw new Error(result.error || "导入文章失败");
+            }
+            showToast(`导入完成：新增 ${result.created} 篇，更新 ${result.updated} 篇`);
+            fetchPosts();
+          } catch (error) {
+            showToast(error.message || "导入文章失败", "error");
+          } finally {
+            setTransferBusy(false);
+          }
+        }
+      );
+    } catch (error) {
+      showToast(error instanceof SyntaxError ? "文件不是有效的 JSON" : "读取导入文件失败", "error");
+    }
+  };
+
   // Handle Change Password
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -1779,20 +1867,47 @@ function AdminView({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className={`text-lg font-bold ${theme.textPrimary}`}>所有文章列表 ({posts.length})</h3>
-                <button
-                  onClick={() => setEditingPost({
-                    title: "",
-                    content: "",
-                    category: "技术学习",
-                    tags: [],
-                    status: "published",
-                    cover_image: getRandomCoverImage()
-                  })}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-xs transition-colors ${theme.accentBg}`}
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>新建文章</span>
-                </button>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept=".json,application/json"
+                    onChange={handleImportFile}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleExportPosts}
+                    disabled={transferBusy}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${theme.subCardBg}`}
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>{transferBusy ? "处理中..." : "导出文章"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => importInputRef.current?.click()}
+                    disabled={transferBusy}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${theme.subCardBg}`}
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>导入 JSON</span>
+                  </button>
+                  <button
+                    onClick={() => setEditingPost({
+                      title: "",
+                      content: "",
+                      category: "技术学习",
+                      tags: [],
+                      status: "published",
+                      cover_image: getRandomCoverImage()
+                    })}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-xs transition-colors ${theme.accentBg}`}
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>新建文章</span>
+                  </button>
+                </div>
               </div>
 
               <div className={`rounded-xl overflow-hidden border ${theme.cardBg} ${theme.border}`}>
